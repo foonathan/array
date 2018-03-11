@@ -48,6 +48,12 @@ namespace foonathan
             {
             }
 
+            /// \effects Whether or not it is empty.
+            explicit constexpr operator bool() const noexcept
+            {
+                return memory != nullptr;
+            }
+
             /// \returns The maximum size of a memory block.
             static constexpr size_type max_size() noexcept
             {

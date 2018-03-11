@@ -6,4 +6,7 @@
 #include <foonathan/array/raw_storage.hpp>
 #include <foonathan/array/block_storage_new.hpp>
 
-int main() {}
+int main()
+{
+    foonathan::array::block_storage_new<foonathan::array::default_growth> storage;
+}

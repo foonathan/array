@@ -113,7 +113,7 @@ namespace foonathan
                 block);
             for (auto cur = begin; cur != end; ++cur)
                 range.construct_object(std::move_if_noexcept(*cur));
-            return range.release();
+            return std::move(range).release();
         }
 
         /// \effects Copies elements of the given range to the uninitialized memory of the given block.
@@ -127,7 +127,7 @@ namespace foonathan
                 block);
             for (auto cur = begin; cur != end; ++cur)
                 range.construct_object(*cur);
-            return range.release();
+            return std::move(range).release();
         }
 
         /// \effects Destroys all objects in the given range.
