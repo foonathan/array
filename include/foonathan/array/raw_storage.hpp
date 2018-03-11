@@ -31,6 +31,15 @@ namespace foonathan
             return from_pointer(object);
         }
 
+        /// \effects Destroys all objects in the given range.
+        template <typename FwdIter>
+        void destroy_range(FwdIter begin, FwdIter end) noexcept
+        {
+            using type = typename std::iterator_traits<FwdIter>::value_type;
+            for (auto cur = begin; cur != end; ++cur)
+                cur->~type();
+        }
+
         /// A RAII object to manage created objects in a range.
         template <typename T>
         class partially_constructed_range
@@ -42,16 +51,23 @@ namespace foonathan
             {
             }
 
-            /// \effects Creates it giving it the memory block it uses to create the objects.
+            /// \effects Creates it giving it the memory block it uses to create the objects in.
             explicit partially_constructed_range(const memory_block& block)
             : partially_constructed_range(block.memory)
+            {
+            }
+
+            /// \effects Creates it giving it a range of already created objects.
+            /// It will create new objects starting at end.
+            partially_constructed_range(raw_pointer constructed_begin, raw_pointer constructed_end)
+            : begin_(to_pointer<T>(constructed_begin)), end_(constructed_end)
             {
             }
 
             /// \effects Creates it giving it the memory block
             /// and a range of objects that have already been created.
             partially_constructed_range(const memory_block& block, raw_pointer constructed_end)
-            : begin_(to_pointer<T>(block.memory)), end_(constructed_end)
+            : partially_constructed_range(block.memory, constructed_end)
             {
             }
 
@@ -61,9 +77,7 @@ namespace foonathan
             /// \effects Destroys all objects already created.
             ~partially_constructed_range() noexcept
             {
-                auto end = to_pointer<T>(end_);
-                for (auto cur = begin_; cur != end; ++cur)
-                    destroy_object(cur);
+                destroy_range(begin_, to_pointer<T>(end_));
             }
 
             /// \effects Creates a new object at the end.
@@ -131,15 +145,6 @@ namespace foonathan
             for (auto cur = begin; cur != end; ++cur)
                 range.construct_object(*cur);
             return std::move(range).release();
-        }
-
-        /// \effects Destroys all objects in the given range.
-        template <typename FwdIter>
-        void destroy_range(FwdIter begin, FwdIter end) noexcept
-        {
-            using type = typename std::iterator_traits<FwdIter>::value_type;
-            for (auto cur = begin; cur != end; ++cur)
-                cur->~type();
         }
 
         /// \effects [std::move_if_noexcept]() elements of the given range to the uninitialized memory of the given block,
