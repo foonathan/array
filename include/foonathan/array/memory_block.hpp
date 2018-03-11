@@ -14,13 +14,45 @@ namespace foonathan
         /// The size of a memory block.
         using size_type = std::size_t;
 
+        /// A pointer to a memory block.
+        /// \notes This is used to provide byte-wise access and pointer arithmetic.
+        using raw_pointer = unsigned char*;
+
+        constexpr raw_pointer from_pointer(void* ptr) noexcept
+        {
+            return static_cast<unsigned char*>(ptr);
+        }
+
+        constexpr void* to_void_pointer(raw_pointer ptr) noexcept
+        {
+            return ptr;
+        }
+
+        template <typename T>
+        constexpr T* to_pointer(raw_pointer ptr) noexcept
+        {
+            return static_cast<T*>(to_void_pointer(ptr));
+        }
+
         /// A contiguous block of memory.
         struct memory_block
         {
-            void*     memory;
-            size_type size;
+            raw_pointer memory;
+            size_type   size;
 
-            constexpr memory_block(void* memory, size_type size) : memory(memory), size(size) {}
+            /// \effects Creates an empty block.
+            constexpr memory_block() noexcept : memory(nullptr), size(0) {}
+
+            constexpr memory_block(raw_pointer memory, size_type size) noexcept
+            : memory(memory), size(size)
+            {
+            }
+
+            /// \returns The maximum size of a memory block.
+            static constexpr size_type max_size() noexcept
+            {
+                return size_type(-1);
+            }
         };
     }
 } // namespace foonathan::array

@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.9)
 project(array)
 
 set(header_files
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/block_storage_new.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/memory_block.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/raw_storage.hpp
     )
 add_library(foonathan_array INTERFACE)
 target_sources(foonathan_array INTERFACE ${header_files})

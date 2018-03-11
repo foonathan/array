@@ -3,5 +3,7 @@
 // found in the top-level directory of this distribution.
 
 #include <foonathan/array/memory_block.hpp>
+#include <foonathan/array/raw_storage.hpp>
+#include <foonathan/array/block_storage_new.hpp>
 
 int main() {}
