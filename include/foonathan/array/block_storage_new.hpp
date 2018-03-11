@@ -30,7 +30,7 @@ namespace foonathan
         /// A `BlockStorage` that uses `operator new` for memory allocations.
         ///
         /// It does not have a small buffer optimization and uses the specified growth policy.
-        template <class GrowthPolicy>
+        template <typename T, class GrowthPolicy>
         class block_storage_new
         {
         public:
@@ -44,28 +44,48 @@ namespace foonathan
             {
             }
 
+            block_storage_new(const block_storage_new&) = delete;
+            block_storage_new& operator=(const block_storage_new&) = delete;
+
             ~block_storage_new() noexcept
             {
                 if (block_)
                     delete_block(std::move(block_));
             }
 
-            block_storage_new(const block_storage_new&) = delete;
-            block_storage_new& operator=(const block_storage_new&) = delete;
-
-            template <typename T>
-            T* reserve(size_type min_additional, T* begin_constructed, T* end_constructed)
+            void move_construct(block_storage_new&& other, T* begin_constructed, T* end_constructed)
             {
-                auto bigger = new_block(GrowthPolicy::growth_size(block_.size, min_additional));
+                (void)begin_constructed;
+                (void)end_constructed;
+
+                block_       = other.block_;
+                other.block_ = memory_block();
+            }
+
+            void swap(T* my_begin_constructed, T* my_end_constructed, block_storage_new& other,
+                      T* other_begin_constructed, T* other_end_constructed)
+            {
+                (void)my_begin_constructed;
+                (void)my_end_constructed;
+                (void)other_begin_constructed;
+                (void)other_end_constructed;
+
+                std::swap(block_, other.block_);
+            }
+
+            raw_pointer reserve(size_type min_additional, T* begin_constructed, T* end_constructed)
+            {
+                auto bigger =
+                    new_block(GrowthPolicy::growth_size(block_.size, min_additional * sizeof(T)));
                 return move_elements(begin_constructed, end_constructed, bigger);
             }
 
-            template <typename T>
-            T* shrink_to_fit(T* begin_constructed, T* end_constructed)
+            raw_pointer shrink_to_fit(T* begin_constructed, T* end_constructed)
             {
-                auto smaller = new_block(
-                    GrowthPolicy::shrink_size(block_.size,
-                                              size_type(end_constructed - begin_constructed)));
+                auto smaller =
+                    new_block(GrowthPolicy::shrink_size(block_.size, size_type(end_constructed
+                                                                               - begin_constructed)
+                                                                         * sizeof(T)));
                 return move_elements(begin_constructed, end_constructed, smaller);
             }
 
@@ -75,15 +95,14 @@ namespace foonathan
             }
 
         private:
-            template <typename T>
-            T* move_elements(T* begin_constructed, T* end_constructed,
-                             const memory_block& new_block)
+            raw_pointer move_elements(T* begin_constructed, T* end_constructed,
+                                      const memory_block& new_block)
             {
-                auto first_new =
+                auto end =
                     uninitialized_destructive_move(begin_constructed, end_constructed, new_block);
                 delete_block(std::move(block_));
                 block_ = new_block;
-                return first_new;
+                return end;
             }
 
             memory_block block_;
