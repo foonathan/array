@@ -15,10 +15,13 @@ TEST_CASE("pointer_iterator", "[core]")
     };
     using iter = pointer_iterator<tag, int>;
 
+    REQUIRE(is_contiguous_iterator<iter>::value);
+
     SECTION("default")
     {
         iter def;
         REQUIRE(def.operator->() == nullptr);
+        REQUIRE(iterator_to_pointer(def) == nullptr);
     }
     SECTION("non-default")
     {
@@ -26,9 +29,11 @@ TEST_CASE("pointer_iterator", "[core]")
 
         auto begin = iter(tag{}, array);
         REQUIRE(begin.operator->() == array);
+        REQUIRE(iterator_to_pointer(begin) == array);
 
         auto end = iter(tag{}, array + 4);
         REQUIRE(end.operator->() == array + 4);
+        REQUIRE(iterator_to_pointer(end) == array + 4);
 
         SECTION("access")
         {

@@ -18,10 +18,12 @@ if(NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/catch.hpp)
     endif()
 endif()
 
-set(tests growth_policy.cpp
-          memory_block.cpp
-          pointer_iterator.cpp
-          raw_storage.cpp)
+set(tests
+        contiguous_iterator.cpp
+        growth_policy.cpp
+        memory_block.cpp
+        pointer_iterator.cpp
+        raw_storage.cpp)
 
 add_executable(foonathan_array_test
                 test.cpp

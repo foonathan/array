@@ -6,6 +6,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wconversion -Werror")
 set(header_files
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/bag.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/block_storage_new.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/contiguous_iterator.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/growth_policy.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/memory_block.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/pointer_iterator.hpp

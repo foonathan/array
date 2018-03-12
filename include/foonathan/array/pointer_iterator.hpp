@@ -7,6 +7,8 @@
 
 #include <iterator>
 
+#include <foonathan/array/contiguous_iterator.hpp>
+
 namespace foonathan
 {
     namespace array
@@ -141,6 +143,15 @@ namespace foonathan
 
         private:
             T* ptr_;
+        };
+
+        template <typename Tag, typename T>
+        struct is_contiguous_iterator<pointer_iterator<Tag, T>> : std::true_type
+        {
+            static T* to_pointer(pointer_iterator<Tag, T> iterator) noexcept
+            {
+                return iterator.operator->();
+            }
         };
     }
 } // namespace foonathan::array
