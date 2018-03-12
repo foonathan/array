@@ -8,6 +8,7 @@
 #include <new>
 #include <type_traits>
 
+#include <foonathan/array/block_storage_arg.hpp>
 #include <foonathan/array/growth_policy.hpp>
 #include <foonathan/array/memory_block.hpp>
 #include <foonathan/array/raw_storage.hpp>
@@ -37,12 +38,9 @@ namespace foonathan
             static constexpr auto max_capacity = memory_block::max_size();
             using exact_capacity               = std::true_type;
 
-            block_storage_new() noexcept = default;
+            using arg_type = block_storage_args_t<>;
 
-            explicit block_storage_new(size_type min_initial_capacity)
-            : block_(new_block(min_initial_capacity))
-            {
-            }
+            block_storage_new(arg_type) noexcept {}
 
             block_storage_new(const block_storage_new&) = delete;
             block_storage_new& operator=(const block_storage_new&) = delete;
@@ -92,6 +90,11 @@ namespace foonathan
             const memory_block& block() const noexcept
             {
                 return block_;
+            }
+
+            arg_type arguments() const noexcept
+            {
+                return {};
             }
 
         private:

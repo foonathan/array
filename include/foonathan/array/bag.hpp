@@ -31,15 +31,21 @@ namespace foonathan
             using iterator       = pointer_iterator<iter_tag, T>;
             using const_iterator = pointer_iterator<iter_tag, const T>;
 
-            bag() : end_(storage_.block().memory) {}
+            bag() : bag(typename block_storage::arg_type{}) {}
 
-            bag(const bag& other) : end_(storage_.block().memory)
+            bag(typename block_storage::arg_type args)
+            : storage_(std::move(args)), end_(storage_.block().memory)
+            {
+            }
+
+            bag(const bag& other)
+            : storage_(other.storage_.arguments()), end_(storage_.block().memory)
             {
                 insert_range(other.begin(), other.end());
             }
 
             bag(bag&& other) noexcept(std::is_nothrow_move_constructible<T>::value)
-            : end_(storage_.block().memory)
+            : storage_(other.storage_.arguments()), end_(storage_.block().memory)
             {
                 storage_.move_construct(std::move(other.storage_), other.data(), other.data_end());
             }
@@ -51,8 +57,8 @@ namespace foonathan
 
             bag& operator=(const bag& other)
             {
-                clear();
-                insert_range(other.begin(), other.end());
+                bag tmp(other);
+                swap(*this, tmp);
                 return *this;
             }
 

@@ -19,6 +19,7 @@ if(NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/catch.hpp)
 endif()
 
 set(tests
+        block_storage_args.cpp
         contiguous_iterator.cpp
         growth_policy.cpp
         memory_block.cpp
