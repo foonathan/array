@@ -79,6 +79,50 @@ TEST_CASE("partially_constructed_range", "[core]")
     }
 }
 
+TEST_CASE("uninitialized_move/move_if_noexcept/copy for trivial type", "[core]")
+{
+    struct test_type
+    {
+        std::uint16_t id;
+
+        test_type(int i) : id(std::uint16_t(i)) {}
+
+        // this type is only moveable, and not copyable
+        // so if the memcpy optimization didn't kick in,
+        // uninitialized_copy would not compile
+        test_type(const test_type&) = delete;
+        test_type(test_type&&)      = default;
+        ~test_type()                = default;
+    };
+    REQUIRE(std::is_trivially_copyable<test_type>::value);
+
+    test_type array[] = {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3};
+
+    std::aligned_storage<4 * sizeof(test_type)>::type storage{};
+    auto block = memory_block(from_pointer(&storage), 4 * sizeof(test_type));
+
+    raw_pointer end;
+    SECTION("uninitialized_move")
+    {
+        end = uninitialized_move(std::begin(array), std::end(array), block);
+    }
+    SECTION("uninitialized_move_if_noexcept")
+    {
+        end = uninitialized_move_if_noexcept(std::begin(array), std::end(array), block);
+    }
+    SECTION("uninitialized_copy")
+    {
+        end = uninitialized_copy(std::begin(array), std::end(array), block);
+    }
+    REQUIRE(end == from_pointer(&storage) + 4 * sizeof(test_type));
+
+    auto ptr = to_pointer<test_type>(block.memory);
+    REQUIRE(ptr[0].id == 0xF0F0);
+    REQUIRE(ptr[1].id == 0xF1F1);
+    REQUIRE(ptr[2].id == 0xF2F2);
+    REQUIRE(ptr[3].id == 0xF3F3);
+}
+
 TEST_CASE("uninitialized_move", "[core]")
 {
     leak_checker checker;

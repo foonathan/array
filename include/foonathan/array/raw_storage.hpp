@@ -5,10 +5,12 @@
 #ifndef FOONATHAN_ARRAY_RAW_STORAGE_HPP_INCLUDED
 #define FOONATHAN_ARRAY_RAW_STORAGE_HPP_INCLUDED
 
+#include <cstring>
 #include <iterator>
 #include <new>
 #include <type_traits>
 
+#include <foonathan/array/contiguous_iterator.hpp>
 #include <foonathan/array/memory_block.hpp>
 
 namespace foonathan
@@ -31,13 +33,28 @@ namespace foonathan
             return from_pointer(object);
         }
 
+        namespace detail
+        {
+            template <typename T, typename FwdIter>
+            void destroy_range(std::true_type, FwdIter, FwdIter) noexcept
+            {
+                // trivially destructible, no need to do anything
+            }
+
+            template <typename T, typename FwdIter>
+            void destroy_range(std::false_type, FwdIter begin, FwdIter end) noexcept
+            {
+                for (auto cur = begin; cur != end; ++cur)
+                    cur->~T();
+            }
+        } // namespace detail
+
         /// \effects Destroys all objects in the given range.
         template <typename FwdIter>
         void destroy_range(FwdIter begin, FwdIter end) noexcept
         {
             using type = typename std::iterator_traits<FwdIter>::value_type;
-            for (auto cur = begin; cur != end; ++cur)
-                cur->~type();
+            detail::destroy_range<type>(std::is_trivially_destructible<type>{}, begin, end);
         }
 
         /// A RAII object to manage created objects in a range.
@@ -106,6 +123,44 @@ namespace foonathan
             raw_pointer end_;
         };
 
+        namespace detail
+        {
+            template <typename InputIter, typename T>
+            struct can_memcpy
+            : std::integral_constant<bool, is_contiguous_iterator<InputIter>::value
+                                               && std::is_trivially_copyable<T>::value>
+            {
+            };
+
+            template <typename T, typename, typename ContIter>
+            raw_pointer uninitialized_move_copy_impl(std::true_type, ContIter begin, ContIter end,
+                                                     const memory_block& block) noexcept
+            {
+                auto no_elements = std::size_t(end - begin);
+                auto size        = no_elements * sizeof(T);
+                std::memcpy(to_void_pointer(block.memory), iterator_to_pointer(begin), size);
+                return block.memory + block.size;
+            }
+
+            template <typename T, typename TargetT, typename InputIter>
+            raw_pointer uninitialized_move_copy_impl(std::false_type, InputIter begin,
+                                                     InputIter end, const memory_block& block)
+            {
+                partially_constructed_range<T> range(block);
+                for (auto cur = begin; cur != end; ++cur)
+                    range.construct_object(static_cast<TargetT>(*cur));
+                return std::move(range).release();
+            }
+
+            template <typename T, typename TargetT, typename InputIter>
+            raw_pointer uninitialized_move_copy(InputIter begin, InputIter end,
+                                                const memory_block& block)
+            {
+                return uninitialized_move_copy_impl<T, TargetT>(can_memcpy<InputIter, T>{}, begin,
+                                                                end, block);
+            }
+        } // namespace detail
+
         /// \effects Moves elements of the given range to the uninitialized memory of the given block.
         /// \returns A pointer past the last created object.
         /// \notes If an exception is thrown, some objects in the original range may already be in the moved-from state,
@@ -113,11 +168,8 @@ namespace foonathan
         template <typename InputIter>
         raw_pointer uninitialized_move(InputIter begin, InputIter end, const memory_block& block)
         {
-            partially_constructed_range<typename std::iterator_traits<InputIter>::value_type> range(
-                block);
-            for (auto cur = begin; cur != end; ++cur)
-                range.construct_object(std::move(*cur));
-            return std::move(range).release();
+            using type = typename std::iterator_traits<InputIter>::value_type;
+            return detail::uninitialized_move_copy<type, type&&>(begin, end, block);
         }
 
         /// \effects [std::move_if_noexcept]() elements of the given range to the uninitialized memory of the given block.
@@ -127,11 +179,12 @@ namespace foonathan
         raw_pointer uninitialized_move_if_noexcept(InputIter begin, InputIter end,
                                                    const memory_block& block)
         {
-            partially_constructed_range<typename std::iterator_traits<InputIter>::value_type> range(
-                block);
-            for (auto cur = begin; cur != end; ++cur)
-                range.construct_object(std::move_if_noexcept(*cur));
-            return std::move(range).release();
+            using type = typename std::iterator_traits<InputIter>::value_type;
+            using target_type =
+                typename std::conditional<!std::is_nothrow_move_constructible<type>::value
+                                              && std::is_copy_constructible<type>::value,
+                                          const type&, type &&>::type;
+            return detail::uninitialized_move_copy<type, target_type>(begin, end, block);
         }
 
         /// \effects Copies elements of the given range to the uninitialized memory of the given block.
@@ -140,11 +193,8 @@ namespace foonathan
         template <typename InputIter>
         raw_pointer uninitialized_copy(InputIter begin, InputIter end, const memory_block& block)
         {
-            partially_constructed_range<typename std::iterator_traits<InputIter>::value_type> range(
-                block);
-            for (auto cur = begin; cur != end; ++cur)
-                range.construct_object(*cur);
-            return std::move(range).release();
+            using type = typename std::iterator_traits<InputIter>::value_type;
+            return detail::uninitialized_move_copy<type, const type&>(begin, end, block);
         }
 
         /// \effects [std::move_if_noexcept]() elements of the given range to the uninitialized memory of the given block,
