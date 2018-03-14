@@ -31,7 +31,7 @@ namespace foonathan
         struct is_contiguous_iterator<T*> : std::true_type
         {
             /// \returns The pointer unchanged.
-            static T* to_pointer(T* iterator) noexcept
+            static constexpr T* to_pointer(T* iterator) noexcept
             {
                 return iterator;
             }
@@ -40,7 +40,7 @@ namespace foonathan
         /// \returns A pointer pointing to the same location as the contiguous iterator.
         /// \notes This function only participates in overload resolution if it actually is a contiguous iterator.
         template <typename ContIter>
-        auto iterator_to_pointer(const ContIter& iter) noexcept
+        constexpr auto iterator_to_pointer(const ContIter& iter) noexcept
             -> decltype(is_contiguous_iterator<ContIter>::to_pointer(iter))
         {
             return is_contiguous_iterator<ContIter>::to_pointer(iter);

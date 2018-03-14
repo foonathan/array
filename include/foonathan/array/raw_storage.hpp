@@ -136,7 +136,7 @@ namespace foonathan
 
             /// \effects Creates it giving it the memory block it uses to create the objects in.
             explicit partially_constructed_range(const memory_block& block)
-            : partially_constructed_range(block.memory)
+            : partially_constructed_range(block.begin())
             {
             }
 
@@ -150,7 +150,7 @@ namespace foonathan
             /// \effects Creates it giving it the memory block
             /// and a range of objects that have already been created.
             partially_constructed_range(const memory_block& block, raw_pointer constructed_end)
-            : partially_constructed_range(block.memory, constructed_end)
+            : partially_constructed_range(block.begin(), constructed_end)
             {
             }
 
@@ -272,8 +272,8 @@ namespace foonathan
             {
                 auto no_elements = std::size_t(end - begin);
                 auto size        = no_elements * sizeof(T);
-                std::memcpy(to_void_pointer(block.memory), iterator_to_pointer(begin), size);
-                return block.memory + block.size;
+                std::memcpy(to_void_pointer(block.begin()), iterator_to_pointer(begin), size);
+                return block.begin() + size;
             }
 
             template <typename T, typename TargetT, typename InputIter>

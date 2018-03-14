@@ -154,7 +154,7 @@ TEST_CASE("uninitialized_ construction", "[core]")
     {
         end = uninitialized_value_construct<test_type>(block, 4);
 
-        auto ptr = to_pointer<test_type>(block.memory);
+        auto ptr = to_pointer<test_type>(block.begin());
         REQUIRE(ptr[0].id == 0);
         REQUIRE(ptr[1].id == 0);
         REQUIRE(ptr[2].id == 0);
@@ -164,15 +164,15 @@ TEST_CASE("uninitialized_ construction", "[core]")
     {
         end = uninitialized_fill(block, 4, test_type(0xF0F0));
 
-        auto ptr = to_pointer<test_type>(block.memory);
+        auto ptr = to_pointer<test_type>(block.begin());
         REQUIRE(ptr[0].id == 0xF0F0);
         REQUIRE(ptr[1].id == 0xF0F0);
         REQUIRE(ptr[2].id == 0xF0F0);
         REQUIRE(ptr[3].id == 0xF0F0);
     }
 
-    REQUIRE(end == block.memory + block.size);
-    destroy_range(to_pointer<test_type>(block.memory), to_pointer<test_type>(end));
+    REQUIRE(end == block.end());
+    destroy_range(to_pointer<test_type>(block.begin()), to_pointer<test_type>(end));
 }
 
 TEST_CASE("uninitialized_move/move_if_noexcept/copy for trivial type", "[core]")
@@ -212,7 +212,7 @@ TEST_CASE("uninitialized_move/move_if_noexcept/copy for trivial type", "[core]")
     }
     REQUIRE(end == from_pointer(&storage) + 4 * sizeof(test_type));
 
-    auto ptr = to_pointer<test_type>(block.memory);
+    auto ptr = to_pointer<test_type>(block.begin());
     REQUIRE(ptr[0].id == 0xF0F0);
     REQUIRE(ptr[1].id == 0xF1F1);
     REQUIRE(ptr[2].id == 0xF2F2);
@@ -248,7 +248,7 @@ TEST_CASE("uninitialized_move", "[core]")
         auto end = uninitialized_move(std::begin(array), std::end(array), block);
         REQUIRE(end == from_pointer(&storage) + 4 * sizeof(test_type));
 
-        auto ptr = to_pointer<test_type>(block.memory);
+        auto ptr = to_pointer<test_type>(block.begin());
         REQUIRE(ptr[0].id == 0xF0F0);
         REQUIRE(ptr[1].id == 0xF1F1);
         REQUIRE(ptr[2].id == 0xF2F2);
@@ -290,7 +290,7 @@ TEST_CASE("uninitialized_copy", "[core]")
         auto end = uninitialized_copy(std::begin(array), std::end(array), block);
         REQUIRE(end == from_pointer(&storage) + 4 * sizeof(test_type));
 
-        auto ptr = to_pointer<test_type>(block.memory);
+        auto ptr = to_pointer<test_type>(block.begin());
         REQUIRE(ptr[0].id == 0xF0F0);
         REQUIRE(ptr[1].id == 0xF1F1);
         REQUIRE(ptr[2].id == 0xF2F2);
@@ -333,7 +333,7 @@ TEST_CASE("uninitialized_move_if_noexcept", "[core]")
         auto end = uninitialized_move_if_noexcept(std::begin(array), std::end(array), block);
         REQUIRE(end == from_pointer(&storage) + 4 * sizeof(test_type));
 
-        auto ptr = to_pointer<test_type>(block.memory);
+        auto ptr = to_pointer<test_type>(block.begin());
         REQUIRE(ptr[0].id == 0xF0F0);
         REQUIRE(ptr[1].id == 0xF1F1);
         REQUIRE(ptr[2].id == 0xF2F2);
@@ -371,7 +371,7 @@ TEST_CASE("uninitialized_move_if_noexcept", "[core]")
             auto end = uninitialized_move_if_noexcept(std::begin(array), std::end(array), block);
             REQUIRE(end == from_pointer(&storage) + 4 * sizeof(test_type));
 
-            auto ptr = to_pointer<test_type>(block.memory);
+            auto ptr = to_pointer<test_type>(block.begin());
             REQUIRE(ptr[0].id == 0xF0F0);
             REQUIRE(ptr[1].id == 0xF1F1);
             REQUIRE(ptr[2].id == 0xF2F2);
@@ -402,20 +402,19 @@ TEST_CASE("uninitialized_destructive_move", "[core]")
     std::aligned_storage<8 * sizeof(test_type)>::type storage{};
 
     auto old_block = memory_block(from_pointer(&storage), 4 * sizeof(test_type));
-    paren_construct_object<test_type>(old_block.memory, 0xF0F0);
-    paren_construct_object<test_type>(old_block.memory + sizeof(test_type), 0xF1F1);
-    paren_construct_object<test_type>(old_block.memory + 2 * sizeof(test_type), 0xF2F2);
-    paren_construct_object<test_type>(old_block.memory + 3 * sizeof(test_type), 0xF3F3);
+    paren_construct_object<test_type>(old_block.begin(), 0xF0F0);
+    paren_construct_object<test_type>(old_block.begin() + sizeof(test_type), 0xF1F1);
+    paren_construct_object<test_type>(old_block.begin() + 2 * sizeof(test_type), 0xF2F2);
+    paren_construct_object<test_type>(old_block.begin() + 3 * sizeof(test_type), 0xF3F3);
 
     auto new_block =
         memory_block(from_pointer(&storage) + 4 * sizeof(test_type), 4 * sizeof(test_type));
 
     // no need to check for throwing, this is already tested
-    uninitialized_destructive_move(to_pointer<test_type>(old_block.memory),
-                                   to_pointer<test_type>(old_block.memory + old_block.size),
-                                   new_block);
+    uninitialized_destructive_move(to_pointer<test_type>(old_block.begin()),
+                                   to_pointer<test_type>(old_block.end()), new_block);
 
-    auto ptr = to_pointer<test_type>(new_block.memory);
+    auto ptr = to_pointer<test_type>(new_block.begin());
     REQUIRE(ptr[0].id == 0xF0F0);
     REQUIRE(ptr[1].id == 0xF1F1);
     REQUIRE(ptr[2].id == 0xF2F2);

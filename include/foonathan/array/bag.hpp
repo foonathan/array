@@ -34,18 +34,18 @@ namespace foonathan
             bag() : bag(typename block_storage::arg_type{}) {}
 
             bag(typename block_storage::arg_type args)
-            : storage_(std::move(args)), end_(storage_.block().memory)
+            : storage_(std::move(args)), end_(storage_.block().begin())
             {
             }
 
             bag(const bag& other)
-            : storage_(other.storage_.arguments()), end_(storage_.block().memory)
+            : storage_(other.storage_.arguments()), end_(storage_.block().begin())
             {
                 insert_range(other.begin(), other.end());
             }
 
             bag(bag&& other) noexcept(std::is_nothrow_move_constructible<T>::value)
-            : storage_(other.storage_.arguments()), end_(storage_.block().memory)
+            : storage_(other.storage_.arguments()), end_(storage_.block().begin())
             {
                 storage_.move_construct(std::move(other.storage_), other.data(), other.data_end());
             }
@@ -79,11 +79,11 @@ namespace foonathan
             //=== element access ===//
             T* data() noexcept
             {
-                return to_pointer<T>(storage_.block().memory);
+                return to_pointer<T>(storage_.block().begin());
             }
             const T* data() const noexcept
             {
-                return to_pointer<const T>(storage_.block().memory);
+                return to_pointer<const T>(storage_.block().begin());
             }
 
             T* data_end() noexcept
@@ -228,7 +228,7 @@ namespace foonathan
 
             bool need_reserve(size_type needed) const noexcept
             {
-                auto space = size_type((storage_.block().memory + storage_.block().size) - end_);
+                auto space = size_type(storage_.block().end() - end_);
                 return space < needed;
             }
 

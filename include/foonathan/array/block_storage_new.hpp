@@ -25,7 +25,7 @@ namespace foonathan
 
         inline void delete_block(memory_block&& block)
         {
-            ::operator delete[](block.memory);
+            ::operator delete[](block.begin());
         }
 
         /// A `BlockStorage` that uses `operator new` for memory allocations.
@@ -47,7 +47,7 @@ namespace foonathan
 
             ~block_storage_new() noexcept
             {
-                if (block_)
+                if (!block_.empty())
                     delete_block(std::move(block_));
             }
 
@@ -74,16 +74,16 @@ namespace foonathan
             raw_pointer reserve(size_type min_additional, T* begin_constructed, T* end_constructed)
             {
                 auto bigger =
-                    new_block(GrowthPolicy::growth_size(block_.size, min_additional * sizeof(T)));
+                    new_block(GrowthPolicy::growth_size(block_.size(), min_additional * sizeof(T)));
                 return move_elements(begin_constructed, end_constructed, bigger);
             }
 
             raw_pointer shrink_to_fit(T* begin_constructed, T* end_constructed)
             {
-                auto smaller =
-                    new_block(GrowthPolicy::shrink_size(block_.size, size_type(end_constructed
-                                                                               - begin_constructed)
-                                                                         * sizeof(T)));
+                auto smaller = new_block(
+                    GrowthPolicy::shrink_size(block_.size(),
+                                              size_type(end_constructed - begin_constructed)
+                                                  * sizeof(T)));
                 return move_elements(begin_constructed, end_constructed, smaller);
             }
 

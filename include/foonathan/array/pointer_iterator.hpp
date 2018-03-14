@@ -7,6 +7,7 @@
 
 #include <iterator>
 
+#include <foonathan/array/config.hpp>
 #include <foonathan/array/contiguous_iterator.hpp>
 
 namespace foonathan
@@ -27,128 +28,133 @@ namespace foonathan
             /// \effects Creates an iterator from the specified pointer.
             /// \notes You can make the `Tag` constructor `private` to prevent anybody from using that constructor,
             /// except `friend`s of the `Tag`.
-            explicit pointer_iterator(Tag, pointer ptr) : ptr_(ptr) {}
+            explicit constexpr pointer_iterator(Tag, pointer ptr) : ptr_(ptr) {}
 
-            pointer_iterator() noexcept : ptr_(nullptr) {}
+            constexpr pointer_iterator() noexcept : ptr_(nullptr) {}
 
-            pointer_iterator(
+            constexpr pointer_iterator(
                 pointer_iterator<Tag, typename std::remove_const<T>::type> non_const) noexcept
             : ptr_(non_const.operator->())
             {
             }
 
             //=== access ===//
-            reference operator*() const noexcept
+            constexpr reference operator*() const noexcept
             {
                 return *ptr_;
             }
-            pointer operator->() const noexcept
+            constexpr pointer operator->() const noexcept
             {
                 return ptr_;
             }
-            reference operator[](difference_type dist) const noexcept
+            constexpr reference operator[](difference_type dist) const noexcept
             {
                 return ptr_[dist];
             }
 
             //=== increment/decrement ===//
-            pointer_iterator& operator++() noexcept
+            FOONATHAN_ARRAY_CONSTEXPR14 pointer_iterator& operator++() noexcept
             {
                 ++ptr_;
                 return *this;
             }
-            pointer_iterator operator++(int)noexcept
+            FOONATHAN_ARRAY_CONSTEXPR14 pointer_iterator operator++(int)noexcept
             {
                 auto save = *this;
                 ++ptr_;
                 return save;
             }
 
-            pointer_iterator& operator--() noexcept
+            FOONATHAN_ARRAY_CONSTEXPR14 pointer_iterator& operator--() noexcept
             {
                 --ptr_;
                 return *this;
             }
-            pointer_iterator operator--(int)noexcept
+            FOONATHAN_ARRAY_CONSTEXPR14 pointer_iterator operator--(int)noexcept
             {
                 auto save = *this;
                 --ptr_;
                 return save;
             }
 
-            pointer_iterator& operator+=(difference_type dist) noexcept
+            FOONATHAN_ARRAY_CONSTEXPR14 pointer_iterator& operator+=(difference_type dist) noexcept
             {
                 ptr_ += dist;
                 return *this;
             }
 
-            pointer_iterator& operator-=(difference_type dist) noexcept
+            FOONATHAN_ARRAY_CONSTEXPR14 pointer_iterator& operator-=(difference_type dist) noexcept
             {
                 ptr_ -= dist;
                 return *this;
             }
 
             //=== addition/subtraction ===//
-            friend pointer_iterator operator+(pointer_iterator iter, difference_type dist) noexcept
+            friend constexpr pointer_iterator operator+(pointer_iterator iter,
+                                                        difference_type  dist) noexcept
             {
-                iter += dist;
-                return iter;
+                return pointer_iterator(iter.ptr_ + dist);
             }
-            friend pointer_iterator operator+(difference_type dist, pointer_iterator iter) noexcept
+            friend constexpr pointer_iterator operator+(difference_type  dist,
+                                                        pointer_iterator iter) noexcept
             {
                 return iter + dist;
             }
 
-            friend pointer_iterator operator-(pointer_iterator iter, difference_type dist) noexcept
+            friend constexpr pointer_iterator operator-(pointer_iterator iter,
+                                                        difference_type  dist) noexcept
             {
-                iter -= dist;
-                return iter;
+                return pointer_iterator(iter.ptr_ - dist);
             }
-            friend pointer_iterator operator-(difference_type dist, pointer_iterator iter) noexcept
+            friend constexpr pointer_iterator operator-(difference_type  dist,
+                                                        pointer_iterator iter) noexcept
             {
                 return iter - dist;
             }
 
-            friend difference_type operator-(pointer_iterator lhs, pointer_iterator rhs) noexcept
+            friend constexpr difference_type operator-(pointer_iterator lhs,
+                                                       pointer_iterator rhs) noexcept
             {
                 return lhs.ptr_ - rhs.ptr_;
             }
 
             //=== comparision ===//
-            friend bool operator==(pointer_iterator lhs, pointer_iterator rhs) noexcept
+            friend constexpr bool operator==(pointer_iterator lhs, pointer_iterator rhs) noexcept
             {
                 return lhs.ptr_ == rhs.ptr_;
             }
-            friend bool operator!=(pointer_iterator lhs, pointer_iterator rhs) noexcept
+            friend constexpr bool operator!=(pointer_iterator lhs, pointer_iterator rhs) noexcept
             {
                 return lhs.ptr_ != rhs.ptr_;
             }
 
-            friend bool operator<(pointer_iterator lhs, pointer_iterator rhs) noexcept
+            friend constexpr bool operator<(pointer_iterator lhs, pointer_iterator rhs) noexcept
             {
                 return lhs.ptr_ < rhs.ptr_;
             }
-            friend bool operator>(pointer_iterator lhs, pointer_iterator rhs) noexcept
+            friend constexpr bool operator>(pointer_iterator lhs, pointer_iterator rhs) noexcept
             {
                 return lhs.ptr_ > rhs.ptr_;
             }
-            friend bool operator<=(pointer_iterator lhs, pointer_iterator rhs) noexcept
+            friend constexpr bool operator<=(pointer_iterator lhs, pointer_iterator rhs) noexcept
             {
                 return lhs.ptr_ <= rhs.ptr_;
             }
-            friend bool operator>=(pointer_iterator lhs, pointer_iterator rhs) noexcept
+            friend constexpr bool operator>=(pointer_iterator lhs, pointer_iterator rhs) noexcept
             {
                 return lhs.ptr_ >= rhs.ptr_;
             }
 
         private:
+            pointer_iterator(pointer ptr) : ptr_(ptr) {}
+
             T* ptr_;
         };
 
         template <typename Tag, typename T>
         struct is_contiguous_iterator<pointer_iterator<Tag, T>> : std::true_type
         {
-            static T* to_pointer(pointer_iterator<Tag, T> iterator) noexcept
+            static constexpr T* to_pointer(pointer_iterator<Tag, T> iterator) noexcept
             {
                 return iterator.operator->();
             }

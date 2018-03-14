@@ -35,30 +35,52 @@ namespace foonathan
         }
 
         /// A contiguous block of memory.
-        struct memory_block
+        class memory_block
         {
-            raw_pointer memory;
-            size_type   size;
-
-            /// \effects Creates an empty block.
-            constexpr memory_block() noexcept : memory(nullptr), size(0) {}
-
-            constexpr memory_block(raw_pointer memory, size_type size) noexcept
-            : memory(memory), size(size)
-            {
-            }
-
-            /// \effects Whether or not it is empty.
-            explicit constexpr operator bool() const noexcept
-            {
-                return memory != nullptr;
-            }
-
+        public:
             /// \returns The maximum size of a memory block.
             static constexpr size_type max_size() noexcept
             {
                 return size_type(-1);
             }
+
+            /// \effects Creates an empty block.
+            constexpr memory_block() noexcept : begin_(nullptr), end_(nullptr) {}
+
+            constexpr memory_block(raw_pointer memory, size_type size) noexcept
+            : begin_(memory), end_(begin_ + size)
+            {
+            }
+
+            constexpr memory_block(raw_pointer begin, raw_pointer end) noexcept
+            : begin_(begin), end_(end)
+            {
+            }
+
+            /// \returns Whether or not it is empty.
+            constexpr bool empty() const noexcept
+            {
+                return begin_ == end_;
+            }
+
+            constexpr size_type size() const noexcept
+            {
+                return size_type(end_ - begin_);
+            }
+
+            constexpr raw_pointer begin() const noexcept
+            {
+                return begin_;
+            }
+
+            constexpr raw_pointer end() const noexcept
+            {
+                return end_;
+            }
+
+        private:
+            raw_pointer begin_;
+            raw_pointer end_;
         };
     }
 } // namespace foonathan::array

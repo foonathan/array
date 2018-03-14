@@ -24,17 +24,19 @@ TEST_CASE("memory_block", "[core]")
     SECTION("empty")
     {
         memory_block block;
-        REQUIRE(block.memory == nullptr);
-        REQUIRE(block.size == 0u);
-        REQUIRE(!block);
+        REQUIRE(block.begin() == nullptr);
+        REQUIRE(block.end() == nullptr);
+        REQUIRE(block.size() == 0u);
+        REQUIRE(block.empty());
     }
     SECTION("non-empty")
     {
         auto obj = 0;
 
         memory_block block(from_pointer(&obj), sizeof(obj));
-        REQUIRE(block.memory == from_pointer(&obj));
-        REQUIRE(block.size == sizeof(obj));
-        REQUIRE(!!block);
+        REQUIRE(block.begin() == from_pointer(&obj));
+        REQUIRE(block.end() == from_pointer(&obj) + sizeof(obj));
+        REQUIRE(block.size() == sizeof(obj));
+        REQUIRE(!block.empty());
     }
 }
