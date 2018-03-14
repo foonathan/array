@@ -7,12 +7,13 @@ set(header_files
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/bag.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/block_storage_arg.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/block_storage_new.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/config.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/contiguous_iterator.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/growth_policy.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/memory_block.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/pointer_iterator.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/raw_storage.hpp
-    )
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/view.hpp)
 add_library(foonathan_array INTERFACE)
 target_sources(foonathan_array INTERFACE ${header_files})
 target_include_directories(foonathan_array INTERFACE include)

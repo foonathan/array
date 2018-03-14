@@ -24,7 +24,8 @@ set(tests
         growth_policy.cpp
         memory_block.cpp
         pointer_iterator.cpp
-        raw_storage.cpp)
+        raw_storage.cpp
+        view.cpp)
 
 add_executable(foonathan_array_test
                 test.cpp
