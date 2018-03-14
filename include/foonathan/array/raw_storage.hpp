@@ -224,6 +224,39 @@ namespace foonathan
             raw_pointer end_;
         };
 
+        /// \effects Creates `n` objects of type `T` in the memory block using [array::default_construct_object]().
+        /// \returns A pointer after the last created object.
+        template <typename T>
+        raw_pointer uninitialized_default_construct(const memory_block& block, size_type n)
+        {
+            partially_constructed_range<T> range(block);
+            for (auto i = size_type(0); i != n; ++i)
+                range.default_construct_object();
+            return std::move(range).release();
+        }
+
+        /// \effects Creates `n` objects of type `T` in the memory block using [array::value_construct_object]().
+        /// \returns A pointer after the last created object.
+        template <typename T>
+        raw_pointer uninitialized_value_construct(const memory_block& block, size_type n)
+        {
+            partially_constructed_range<T> range(block);
+            for (auto i = size_type(0); i != n; ++i)
+                range.value_construct_object();
+            return std::move(range).release();
+        }
+
+        /// \effects Creates `n` objects of type `T` in the memory block by copying the existing one.
+        /// \returns A pointer after the last created object.
+        template <typename T>
+        raw_pointer uninitialized_fill(const memory_block& block, size_type n, const T& obj)
+        {
+            partially_constructed_range<T> range(block);
+            for (auto i = size_type(0); i != n; ++i)
+                range.construct_object(obj);
+            return std::move(range).release();
+        }
+
         namespace detail
         {
             template <typename InputIter, typename T>

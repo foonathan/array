@@ -130,6 +130,51 @@ TEST_CASE("partially_constructed_range", "[core]")
     }
 }
 
+TEST_CASE("uninitialized_ construction", "[core]")
+{
+    leak_checker leak;
+
+    struct test_type : leak_tracked
+    {
+        std::uint16_t id;
+
+        test_type() = default;
+        test_type(int i) : id(static_cast<std::uint16_t>(i)) {}
+    };
+    std::aligned_storage<4 * sizeof(test_type)>::type storage{};
+    auto block = memory_block(from_pointer(&storage), 4 * sizeof(test_type));
+
+    raw_pointer end;
+    SECTION("default construct")
+    {
+        end = uninitialized_default_construct<test_type>(block, 4);
+        // can't check the values
+    }
+    SECTION("value construct")
+    {
+        end = uninitialized_value_construct<test_type>(block, 4);
+
+        auto ptr = to_pointer<test_type>(block.memory);
+        REQUIRE(ptr[0].id == 0);
+        REQUIRE(ptr[1].id == 0);
+        REQUIRE(ptr[2].id == 0);
+        REQUIRE(ptr[3].id == 0);
+    }
+    SECTION("fill")
+    {
+        end = uninitialized_fill(block, 4, test_type(0xF0F0));
+
+        auto ptr = to_pointer<test_type>(block.memory);
+        REQUIRE(ptr[0].id == 0xF0F0);
+        REQUIRE(ptr[1].id == 0xF0F0);
+        REQUIRE(ptr[2].id == 0xF0F0);
+        REQUIRE(ptr[3].id == 0xF0F0);
+    }
+
+    REQUIRE(end == block.memory + block.size);
+    destroy_range(to_pointer<test_type>(block.memory), to_pointer<test_type>(end));
+}
+
 TEST_CASE("uninitialized_move/move_if_noexcept/copy for trivial type", "[core]")
 {
     struct test_type
