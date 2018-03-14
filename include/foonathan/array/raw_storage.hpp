@@ -17,12 +17,78 @@ namespace foonathan
 {
     namespace array
     {
-        /// \effects Creates a new object at the given location.
+        /// \effects Creates a new object at the given location using default initialization.
         /// \returns A pointer to the newly created object.
+        /// \notes Default initialization may not do any initialization at all.
+        template <typename T>
+        T* default_construct_object(raw_pointer ptr)
+        {
+            return ::new (to_void_pointer(ptr)) T;
+        }
+
+        /// \effects Creates a new object at the given location using value initialization.
+        /// \returns A pointer to the newly created object.
+        /// \notes Value initialization will always do zero initialization, even for types without default constructors.
+        template <typename T>
+        T* value_construct_object(raw_pointer ptr)
+        {
+            return ::new (to_void_pointer(ptr)) T();
+        }
+
+        /// \effects Creates a new object at the given location using `T(std::forward<Args>(args)...)`.
+        /// \returns A pointer to the newly created object.
+        template <typename T, typename... Args>
+        T* paren_construct_object(raw_pointer ptr, Args&&... args)
+        {
+            return ::new (to_void_pointer(ptr)) T(std::forward<Args>(args)...);
+        }
+
+        /// \effects Creates a new object at the given location using `T{std::forward<Args>(args)...}`.
+        /// \returns A pointer to the newly created object.
+        template <typename T, typename... Args>
+        T* list_construct_object(raw_pointer ptr, Args&&... args)
+        {
+            return ::new (to_void_pointer(ptr)) T{std::forward<Args>(args)...};
+        }
+
+        namespace detail
+        {
+#if defined(__cpp_lib_is_aggregate)
+            template <typename T, typename... Args>
+            struct use_list_construct : std::is_aggregate<T>
+            {
+            };
+#else
+            template <typename T, typename... Args>
+            struct use_list_construct
+            : std::integral_constant<bool, !std::is_constructible<T, Args...>::value>
+            {
+            };
+#endif
+
+            template <typename T, typename... Args>
+            T* construct_object_impl(std::true_type, raw_pointer ptr, Args&&... args)
+            {
+                return list_construct_object<T>(ptr, std::forward<Args>(args)...);
+            }
+
+            template <typename T, typename... Args>
+            T* construct_object_impl(std::false_type, raw_pointer ptr, Args&&... args)
+            {
+                return paren_construct_object<T>(ptr, std::forward<Args>(args)...);
+            }
+        } // namespace detail
+
+        /// \effects Creates a new object at the given location using `paren_construct_object()`,
+        /// unless it is an aggregate, then it uses `list_construct_object()`.
+        /// \returns A pointer to the newly created object.
+        /// \notes `std::is_aggregate` is only available in C++17 or higher,
+        /// before that it tries to use list initialization whenever the other one doesn't compile.
         template <typename T, typename... Args>
         T* construct_object(raw_pointer ptr, Args&&... args)
         {
-            return ::new (to_void_pointer(ptr)) T(std::forward<Args>(args)...);
+            return detail::construct_object_impl<T>(detail::use_list_construct<T, Args...>{}, ptr,
+                                                    std::forward<Args>(args)...);
         }
 
         /// \effects Destroys an object at the given location.
@@ -97,13 +163,48 @@ namespace foonathan
                 destroy_range(begin_, to_pointer<T>(end_));
             }
 
-            /// \effects Creates a new object at the end.
+            /// \effects Creates a new object at the end using the corresponding free function.
             /// \returns A pointer to the created object.
             /// \notes Does not check whether there is enough memory left.
+            /// \group construct
             template <typename... Args>
             T* construct_object(Args&&... args)
             {
                 auto result = array::construct_object<T>(end_, std::forward<Args>(args)...);
+                end_ += sizeof(T);
+                return result;
+            }
+
+            /// \group construct
+            template <typename... Args>
+            T* brace_construct_object(Args&&... args)
+            {
+                auto result = array::list_construct_object<T>(end_, std::forward<Args>(args)...);
+                end_ += sizeof(T);
+                return result;
+            }
+
+            /// \group construct
+            template <typename... Args>
+            T* paren_construct_object(Args&&... args)
+            {
+                auto result = array::paren_construct_object<T>(end_, std::forward<Args>(args)...);
+                end_ += sizeof(T);
+                return result;
+            }
+
+            /// \group construct
+            T* default_construct_object()
+            {
+                auto result = array::default_construct_object<T>(end_);
+                end_ += sizeof(T);
+                return result;
+            }
+
+            /// \group construct
+            T* value_construct_object()
+            {
+                auto result = array::value_construct_object<T>(end_);
                 end_ += sizeof(T);
                 return result;
             }

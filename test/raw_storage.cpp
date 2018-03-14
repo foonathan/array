@@ -6,10 +6,61 @@
 
 #include <catch.hpp>
 #include <cstdint>
+#include <initializer_list>
 
 #include "leak_checker.hpp"
 
 using namespace foonathan::array;
+
+TEST_CASE("*_construct_object", "[core]")
+{
+    struct test_type
+    {
+        int sum;
+
+        test_type(int a, int b) : sum(a + b) {}
+        test_type(std::initializer_list<int> list) : sum(*list.begin()) {}
+    };
+
+    std::aligned_storage<sizeof(int)>::type storage{};
+
+    // test using partially_constructed_range to test member functions as well
+    SECTION("default")
+    {
+        partially_constructed_range<int> range(from_pointer(&storage));
+        range.default_construct_object();
+        // can't really check the result here...
+    }
+    SECTION("value")
+    {
+        partially_constructed_range<int> range(from_pointer(&storage));
+        auto                             ptr = range.default_construct_object();
+        REQUIRE(*ptr == 0);
+    }
+    SECTION("paren")
+    {
+        partially_constructed_range<test_type> range(from_pointer(&storage));
+        auto                                   ptr = range.paren_construct_object(1, 2);
+        REQUIRE(ptr->sum == 3);
+    }
+    SECTION("brace")
+    {
+        partially_constructed_range<test_type> range(from_pointer(&storage));
+        auto                                   ptr = range.brace_construct_object(1, 2, 3);
+        REQUIRE(ptr->sum == 1);
+    }
+    SECTION("paren or brace")
+    {
+        struct aggregate
+        {
+            int i;
+        };
+
+        partially_constructed_range<aggregate> range(from_pointer(&storage));
+        auto                                   ptr = range.construct_object(1);
+        REQUIRE(ptr->i == 1);
+    }
+}
 
 TEST_CASE("construct_object/destroy_object/destroy_range", "[core]")
 {
@@ -306,10 +357,10 @@ TEST_CASE("uninitialized_destructive_move", "[core]")
     std::aligned_storage<8 * sizeof(test_type)>::type storage{};
 
     auto old_block = memory_block(from_pointer(&storage), 4 * sizeof(test_type));
-    construct_object<test_type>(old_block.memory, 0xF0F0);
-    construct_object<test_type>(old_block.memory + sizeof(test_type), 0xF1F1);
-    construct_object<test_type>(old_block.memory + 2 * sizeof(test_type), 0xF2F2);
-    construct_object<test_type>(old_block.memory + 3 * sizeof(test_type), 0xF3F3);
+    paren_construct_object<test_type>(old_block.memory, 0xF0F0);
+    paren_construct_object<test_type>(old_block.memory + sizeof(test_type), 0xF1F1);
+    paren_construct_object<test_type>(old_block.memory + 2 * sizeof(test_type), 0xF2F2);
+    paren_construct_object<test_type>(old_block.memory + 3 * sizeof(test_type), 0xF3F3);
 
     auto new_block =
         memory_block(from_pointer(&storage) + 4 * sizeof(test_type), 4 * sizeof(test_type));
