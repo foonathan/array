@@ -168,6 +168,7 @@ namespace foonathan
         ///
         /// This is an [array::block_view]() where the objects have a given ordering
         /// and it makes sense to ask for the `n`-th element.
+        /// \notes If you don't need the special functions like array access, use [array::block_view]() instead.
         /// \notes Inheritance is only used to easily inherit all functionality as well as allow conversion without a user-defined conversion.
         /// Slicing is permitted and works, but the type isn't meant to be used polymorphically.
         template <typename T>
@@ -175,6 +176,13 @@ namespace foonathan
         {
         public:
             using block_view<T>::block_view;
+
+            /// \effects Creates a view to the block.
+            /// \notes This gives the block ordering which may not be there.
+            explicit constexpr array_view(const block_view<T>& block) noexcept
+            : block_view<T>(block)
+            {
+            }
 
             //=== array access ===//
             /// \returns The `i`-th element of the array.
@@ -213,6 +221,14 @@ namespace foonathan
                 return array_view<T>(begin, begin + n);
             }
         };
+
+        /// \returns The array view viewing the given block.
+        /// \notes This gives the block ordering which may not be there.
+        template <typename T>
+        constexpr array_view<T> make_array_view(const block_view<T>& block) noexcept
+        {
+            return array_view<T>(block);
+        }
 
         /// \returns A view to the range `[data, data + size)`.
         template <typename T>
@@ -293,7 +309,7 @@ namespace foonathan
         template <typename T, typename Byte, typename = detail::enable_byte_view<Byte>>
         constexpr array_view<T> reinterpret_array(const array_view<Byte>& view) noexcept
         {
-            return array_view<T>(to_pointer<T>(view.data()), to_pointer<T>(view.data_end()));
+            return make_array_view(reinterpret_block<T>(view));
         }
     }
 } // namespace foonathan::array
