@@ -33,7 +33,8 @@ namespace foonathan
             constexpr pointer_iterator() noexcept : ptr_(nullptr) {}
 
             constexpr pointer_iterator(
-                pointer_iterator<Tag, typename std::remove_const<T>::type> non_const) noexcept
+                const pointer_iterator<Tag, typename std::remove_const<T>::type>&
+                    non_const) noexcept
             : ptr_(non_const.operator->())
             {
             }

@@ -273,7 +273,7 @@ TEST_CASE("uninitialized_copy", "[core]")
 
         test_type(int id) : id(static_cast<std::uint16_t>(id)) {}
 
-        test_type(const test_type& other) : id(other.id)
+        test_type(const test_type& other) : leak_tracked(other), id(other.id)
         {
             if (id == 0xFFFF)
                 throw "throwing copy!";
@@ -319,7 +319,7 @@ TEST_CASE("uninitialized_move_if_noexcept", "[core]")
 
             test_type(test_type&&) noexcept = default;
 
-            test_type(const test_type&) : id(0)
+            test_type(const test_type& other) : leak_tracked(other), id(0)
             {
                 FAIL("copy should not be used");
             }
@@ -354,7 +354,7 @@ TEST_CASE("uninitialized_move_if_noexcept", "[core]")
                 FAIL("move should not be used");
             }
 
-            test_type(const test_type& other) : id(other.id)
+            test_type(const test_type& other) : leak_tracked(other), id(other.id)
             {
                 if (id == 0xFFFF)
                     throw "throwing copy!";

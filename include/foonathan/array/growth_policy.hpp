@@ -37,7 +37,7 @@ namespace foonathan
         class factor_growth
         {
             using factor_type = typename std::conditional<GrowthNumerator % GrowthDenominator == 0,
-                                                          size_type, float>::type;
+                                                          size_type, double>::type;
 
         public:
             static constexpr auto growth_factor = factor_type(GrowthNumerator) / GrowthDenominator;
@@ -46,8 +46,10 @@ namespace foonathan
             /// or the current size plus the additional one, whatever is larger.
             static size_type growth_size(size_type cur_size, size_type additional_needed) noexcept
             {
-                auto needed          = cur_size + additional_needed;
-                auto factored_growth = size_type(growth_factor * cur_size);
+                auto needed = cur_size + additional_needed;
+                // todo: make this one nicer
+                auto factored_growth =
+                    static_cast<size_type>(growth_factor * static_cast<factor_type>(cur_size));
                 return factored_growth > needed ? factored_growth : needed;
             }
 
