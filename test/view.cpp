@@ -43,15 +43,21 @@ TEST_CASE("block_view", "[view]")
     {
         block_view<int> view(array, 3);
         test_block_view(view, block);
+        view = make_block_view(array, 3);
+        test_block_view(view, block);
     }
     SECTION("begin + end")
     {
         block_view<int> view(array, array + 3);
         test_block_view(view, block);
+        view = make_block_view(array, array + 3);
+        test_block_view(view, block);
     }
     SECTION("array")
     {
         block_view<int> view(array);
+        test_block_view(view, block);
+        view = make_block_view(array);
         test_block_view(view, block);
     }
     SECTION("initializer_list")
@@ -72,11 +78,11 @@ TEST_CASE("array_view")
     array_view<const int> cview;
     SECTION("non-const")
     {
-        cview = array_view<const int>(array);
+        cview = make_array_view(array);
     }
     SECTION("const")
     {
-        cview = array_view<const int>(carray);
+        cview = make_array_view(carray);
     }
 
     REQUIRE(cview[0] == 1);
@@ -85,7 +91,7 @@ TEST_CASE("array_view")
     REQUIRE(cview.front() == 1);
     REQUIRE(cview.back() == 3);
 
-    array_view<int> view(array);
-    view[1] = 42;
+    array_view<int> view = make_array_view(array);
+    view[1]              = 42;
     REQUIRE(array[1] == 42);
 }

@@ -80,6 +80,16 @@ namespace foonathan
             {
             }
 
+            /// \effects Converts a view to non-const to a view to const.
+            /// \notes This constructor only participates in overload resolution, if `const U` is the same as `T`,
+            /// i.e. `T` is `const` and `U` is the non-`const` version of it.
+            template <typename U,
+                      typename = typename std::enable_if<std::is_same<const U, T>::value>::type>
+            constexpr block_view(const block_view<U>& other) noexcept
+            : begin_(other.data()), end_(other.data_end())
+            {
+            }
+
             //=== accessors ===//
             /// \returns Whether or not the block is empty.
             constexpr bool empty() const noexcept
@@ -131,6 +141,29 @@ namespace foonathan
             T* end_;
         };
 
+        /// \returns A view to the range `[data, data + size)`.
+        template <typename T>
+        block_view<T> make_block_view(T* data, size_type size)
+        {
+            return block_view<T>(data, size);
+        }
+
+        /// \returns A view to the range `[begin, end)`.
+        /// \notes This function does not participate in overload resolution, unless they are contiguous iterators.
+        template <typename ContIter>
+        auto make_block_view(ContIter begin, ContIter end) -> block_view<
+            typename std::remove_reference<decltype(*iterator_to_pointer(begin))>::type>
+        {
+            return {begin, end};
+        }
+
+        /// \returns A view to the array.
+        template <typename T, std::size_t N>
+        block_view<T> make_block_view(T (&array)[N])
+        {
+            return block_view<T>(array);
+        }
+
         /// A lightweight view into an array.
         ///
         /// This is an [array::block_view]() where the objects have a given ordering
@@ -165,6 +198,29 @@ namespace foonathan
                 return this->data()[this->size() - 1u];
             }
         };
+
+        /// \returns A view to the range `[data, data + size)`.
+        template <typename T>
+        array_view<T> make_array_view(T* data, size_type size)
+        {
+            return array_view<T>(data, size);
+        }
+
+        /// \returns A view to the range `[begin, end)`.
+        /// \notes This function does not participate in overload resolution, unless they are contiguous iterators.
+        template <typename ContIter>
+        auto make_array_view(ContIter begin, ContIter end)
+            -> array_view<decltype(*iterator_to_pointer(begin))>
+        {
+            return array_view<decltype(*iterator_to_pointer(begin))>(begin, end);
+        }
+
+        /// \returns A view to the array.
+        template <typename T, std::size_t N>
+        array_view<T> make_array_view(T (&array)[N])
+        {
+            return array_view<T>(array);
+        }
     }
 } // namespace foonathan::array
 
