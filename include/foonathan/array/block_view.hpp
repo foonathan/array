@@ -2,8 +2,8 @@
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
-#ifndef FOONATHAN_ARRAY_VIEW_HPP_INCLUDED
-#define FOONATHAN_ARRAY_VIEW_HPP_INCLUDED
+#ifndef FOONATHAN_ARRAY_BLOCK_VIEW_HPP_INCLUDED
+#define FOONATHAN_ARRAY_BLOCK_VIEW_HPP_INCLUDED
 
 #include <initializer_list>
 
@@ -163,155 +163,7 @@ namespace foonathan
         {
             return block_view<T>(array);
         }
-
-        /// A lightweight view into an array.
-        ///
-        /// This is an [array::block_view]() where the objects have a given ordering
-        /// and it makes sense to ask for the `n`-th element.
-        /// \notes If you don't need the special functions like array access, use [array::block_view]() instead.
-        /// \notes Inheritance is only used to easily inherit all functionality as well as allow conversion without a user-defined conversion.
-        /// Slicing is permitted and works, but the type isn't meant to be used polymorphically.
-        template <typename T>
-        class array_view : public block_view<T>
-        {
-        public:
-            using block_view<T>::block_view;
-
-            /// \effects Creates a view to the block.
-            /// \notes This gives the block ordering which may not be there.
-            explicit constexpr array_view(const block_view<T>& block) noexcept
-            : block_view<T>(block)
-            {
-            }
-
-            //=== array access ===//
-            /// \returns The `i`-th element of the array.
-            /// \requires `i < size()`.
-            constexpr T& operator[](size_type i) const noexcept
-            {
-                return this->data()[i];
-            }
-
-            /// \returns The first element of the array.
-            /// \requires `!empty()`.
-            constexpr T& front() const noexcept
-            {
-                return this->data()[0];
-            }
-
-            /// \returns The last element of the array.
-            /// \requires `!empty()`.
-            constexpr T& back() const noexcept
-            {
-                return this->data()[this->size() - 1u];
-            }
-
-            /// \returns A slice of the array starting at `pos` containing `n` elements.
-            /// \requires `[data() + pos, data() + pos + n)` must be a valid range.
-            constexpr array_view<T> slice(size_type pos, size_type n) const noexcept
-            {
-                return array_view<T>(this->data() + pos, n);
-            }
-
-            /// \returns A slice of the array starting at `begin` and containing `n` elements.
-            /// \requires `[begin, begin + n)` must be a valid range.
-            constexpr array_view<T> slice(typename block_view<T>::iterator begin, size_type n) const
-                noexcept
-            {
-                return array_view<T>(begin, begin + n);
-            }
-        };
-
-        /// \returns The array view viewing the given block.
-        /// \notes This gives the block ordering which may not be there.
-        template <typename T>
-        constexpr array_view<T> make_array_view(const block_view<T>& block) noexcept
-        {
-            return array_view<T>(block);
-        }
-
-        /// \returns A view to the range `[data, data + size)`.
-        template <typename T>
-        constexpr array_view<T> make_array_view(T* data, size_type size) noexcept
-        {
-            return array_view<T>(data, size);
-        }
-
-        /// \returns A view to the range `[begin, end)`.
-        /// \notes This function does not participate in overload resolution, unless they are contiguous iterators.
-        template <typename ContIter>
-        constexpr auto make_array_view(ContIter begin, ContIter end) noexcept
-            -> array_view<decltype(*iterator_to_pointer(begin))>
-        {
-            return array_view<decltype(*iterator_to_pointer(begin))>(begin, end);
-        }
-
-        /// \returns A view to the array.
-        template <typename T, std::size_t N>
-        constexpr array_view<T> make_array_view(T (&array)[N]) noexcept
-        {
-            return array_view<T>(array);
-        }
-
-        namespace detail
-        {
-            template <typename T>
-            struct select_byte_view
-            {
-                using type = byte;
-            };
-
-            template <typename T>
-            struct select_byte_view<const T>
-            {
-                using type = const byte;
-            };
-
-            template <typename T>
-            struct select_byte_view<volatile T>
-            {
-                using type = volatile byte;
-            };
-
-            template <typename T>
-            struct select_byte_view<const volatile T>
-            {
-                using type = const volatile byte;
-            };
-
-            template <typename Byte>
-            using enable_byte_view = typename std::enable_if<
-                std::is_same<byte, typename std::remove_cv<Byte>::type>::value>::type;
-        } // namespace detail
-
-        /// A lightweight byte-wise view into a memory block.
-        ///
-        /// This is an `array_view<cv byte>`, where cv-qualifiers are taken from `T`.
-        template <typename T>
-        using make_byte_view_t = array_view<typename detail::select_byte_view<T>::type>;
-
-        /// \returns A byte-wise view into the given block.
-        template <typename T>
-        constexpr make_byte_view_t<T> byte_view(const block_view<T>& view) noexcept
-        {
-            return make_byte_view_t<T>(as_raw_pointer(view.data()),
-                                       as_raw_pointer(view.data_end()));
-        }
-
-        /// \returns A reinterpretation of the byte view as the given type.
-        template <typename T, typename Byte, typename = detail::enable_byte_view<Byte>>
-        constexpr block_view<T> reinterpret_block(const array_view<Byte>& view) noexcept
-        {
-            return block_view<T>(to_pointer<T>(view.data()), to_pointer<T>(view.data_end()));
-        }
-
-        /// \returns A reinterpretation of the byte view as the given type.
-        template <typename T, typename Byte, typename = detail::enable_byte_view<Byte>>
-        constexpr array_view<T> reinterpret_array(const array_view<Byte>& view) noexcept
-        {
-            return make_array_view(reinterpret_block<T>(view));
-        }
     }
 } // namespace foonathan::array
 
-#endif // FOONATHAN_ARRAY_VIEW_HPP_INCLUDED
+#endif // FOONATHAN_ARRAY_BLOCK_VIEW_HPP_INCLUDED

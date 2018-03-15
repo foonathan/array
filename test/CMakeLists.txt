@@ -19,13 +19,16 @@ if(NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/catch.hpp)
 endif()
 
 set(tests
+        array_view.cpp
         block_storage_args.cpp
+        block_view.cpp
+        byte_view.cpp
         contiguous_iterator.cpp
         growth_policy.cpp
         memory_block.cpp
         pointer_iterator.cpp
         raw_storage.cpp
-        view.cpp)
+    )
 
 add_executable(foonathan_array_test
                 test.cpp
