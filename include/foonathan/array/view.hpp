@@ -143,7 +143,7 @@ namespace foonathan
 
         /// \returns A view to the range `[data, data + size)`.
         template <typename T>
-        block_view<T> make_block_view(T* data, size_type size)
+        constexpr block_view<T> make_block_view(T* data, size_type size) noexcept
         {
             return block_view<T>(data, size);
         }
@@ -151,7 +151,7 @@ namespace foonathan
         /// \returns A view to the range `[begin, end)`.
         /// \notes This function does not participate in overload resolution, unless they are contiguous iterators.
         template <typename ContIter>
-        auto make_block_view(ContIter begin, ContIter end) -> block_view<
+        constexpr auto make_block_view(ContIter begin, ContIter end) noexcept -> block_view<
             typename std::remove_reference<decltype(*iterator_to_pointer(begin))>::type>
         {
             return {begin, end};
@@ -159,7 +159,7 @@ namespace foonathan
 
         /// \returns A view to the array.
         template <typename T, std::size_t N>
-        block_view<T> make_block_view(T (&array)[N])
+        constexpr block_view<T> make_block_view(T (&array)[N]) noexcept
         {
             return block_view<T>(array);
         }
@@ -197,11 +197,26 @@ namespace foonathan
             {
                 return this->data()[this->size() - 1u];
             }
+
+            /// \returns A slice of the array starting at `pos` containing `n` elements.
+            /// \requires `[data() + pos, data() + pos + n)` must be a valid range.
+            constexpr array_view<T> slice(size_type pos, size_type n) const noexcept
+            {
+                return array_view<T>(this->data() + pos, n);
+            }
+
+            /// \returns A slice of the array starting at `begin` and containing `n` elements.
+            /// \requires `[begin, begin + n)` must be a valid range.
+            constexpr array_view<T> slice(typename block_view<T>::iterator begin, size_type n) const
+                noexcept
+            {
+                return array_view<T>(begin, begin + n);
+            }
         };
 
         /// \returns A view to the range `[data, data + size)`.
         template <typename T>
-        array_view<T> make_array_view(T* data, size_type size)
+        constexpr array_view<T> make_array_view(T* data, size_type size) noexcept
         {
             return array_view<T>(data, size);
         }
@@ -209,7 +224,7 @@ namespace foonathan
         /// \returns A view to the range `[begin, end)`.
         /// \notes This function does not participate in overload resolution, unless they are contiguous iterators.
         template <typename ContIter>
-        auto make_array_view(ContIter begin, ContIter end)
+        constexpr auto make_array_view(ContIter begin, ContIter end) noexcept
             -> array_view<decltype(*iterator_to_pointer(begin))>
         {
             return array_view<decltype(*iterator_to_pointer(begin))>(begin, end);
@@ -217,7 +232,7 @@ namespace foonathan
 
         /// \returns A view to the array.
         template <typename T, std::size_t N>
-        array_view<T> make_array_view(T (&array)[N])
+        constexpr array_view<T> make_array_view(T (&array)[N]) noexcept
         {
             return array_view<T>(array);
         }
