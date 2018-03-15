@@ -133,7 +133,7 @@ namespace foonathan
                       typename = typename std::enable_if<!std::is_const<T>::value, Dummy>::type>
             constexpr memory_block block() const noexcept
             {
-                return memory_block(from_pointer(begin_), from_pointer(end_));
+                return memory_block(as_raw_pointer(begin_), as_raw_pointer(end_));
             }
 
         private:
@@ -235,6 +235,65 @@ namespace foonathan
         constexpr array_view<T> make_array_view(T (&array)[N]) noexcept
         {
             return array_view<T>(array);
+        }
+
+        namespace detail
+        {
+            template <typename T>
+            struct select_byte_view
+            {
+                using type = byte;
+            };
+
+            template <typename T>
+            struct select_byte_view<const T>
+            {
+                using type = const byte;
+            };
+
+            template <typename T>
+            struct select_byte_view<volatile T>
+            {
+                using type = volatile byte;
+            };
+
+            template <typename T>
+            struct select_byte_view<const volatile T>
+            {
+                using type = const volatile byte;
+            };
+
+            template <typename Byte>
+            using enable_byte_view = typename std::enable_if<
+                std::is_same<byte, typename std::remove_cv<Byte>::type>::value>::type;
+        } // namespace detail
+
+        /// A lightweight byte-wise view into a memory block.
+        ///
+        /// This is an `array_view<cv byte>`, where cv-qualifiers are taken from `T`.
+        template <typename T>
+        using make_byte_view_t = array_view<typename detail::select_byte_view<T>::type>;
+
+        /// \returns A byte-wise view into the given block.
+        template <typename T>
+        constexpr make_byte_view_t<T> byte_view(const block_view<T>& view) noexcept
+        {
+            return make_byte_view_t<T>(as_raw_pointer(view.data()),
+                                       as_raw_pointer(view.data_end()));
+        }
+
+        /// \returns A reinterpretation of the byte view as the given type.
+        template <typename T, typename Byte, typename = detail::enable_byte_view<Byte>>
+        constexpr block_view<T> reinterpret_block(const array_view<Byte>& view) noexcept
+        {
+            return block_view<T>(to_pointer<T>(view.data()), to_pointer<T>(view.data_end()));
+        }
+
+        /// \returns A reinterpretation of the byte view as the given type.
+        template <typename T, typename Byte, typename = detail::enable_byte_view<Byte>>
+        constexpr array_view<T> reinterpret_array(const array_view<Byte>& view) noexcept
+        {
+            return array_view<T>(to_pointer<T>(view.data()), to_pointer<T>(view.data_end()));
         }
     }
 } // namespace foonathan::array

@@ -27,7 +27,7 @@ void test_block_view(const block_view<T>& view, const memory_block& expected)
 TEST_CASE("block_view", "[view]")
 {
     int  array[] = {1, 2, 3};
-    auto block   = memory_block(from_pointer(array), 3 * sizeof(int));
+    auto block   = memory_block(as_raw_pointer(array), 3 * sizeof(int));
 
     SECTION("empty")
     {
@@ -108,4 +108,27 @@ TEST_CASE("array_view")
         REQUIRE(slice_view.size() == 1u);
         REQUIRE(slice_view.data() == array + 1);
     }
+}
+
+TEST_CASE("byte_view")
+{
+    std::uint8_t array[] = {0, 1, 255};
+
+    auto bytes = byte_view(make_array_view(array));
+    REQUIRE(static_cast<void*>(bytes.data()) == array);
+    REQUIRE(bytes.size() == 3u);
+    REQUIRE(bytes[0] == 0);
+    REQUIRE(bytes[1] == 1);
+    REQUIRE(bytes[2] == 255);
+
+    auto array_view = reinterpret_array<std::int8_t>(bytes);
+    REQUIRE(static_cast<void*>(array_view.data()) == array);
+    REQUIRE(array_view.size() == 3u);
+    REQUIRE(array_view[0] == 0);
+    REQUIRE(array_view[1] == 1);
+    REQUIRE(array_view[2] == -1);
+
+    auto block_view = reinterpret_block<std::int8_t>(bytes);
+    REQUIRE(static_cast<void*>(block_view.data()) == array);
+    REQUIRE(block_view.size() == 3u);
 }

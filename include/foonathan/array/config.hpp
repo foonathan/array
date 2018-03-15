@@ -5,6 +5,8 @@
 #ifndef FOONATHAN_ARRAY_CONFIG_HPP_INCLUDED
 #define FOONATHAN_ARRAY_CONFIG_HPP_INCLUDED
 
+#include <cstddef>
+
 #ifndef FOONATHAN_ARRAY_USE_CONSTEXPR14
 
 #if defined(__cpp_constexpr) && __cpp_constexpr >= 201304
@@ -23,6 +25,18 @@
 #else
 /// \exclude
 #define FOONATHAN_ARRAY_CONSTEXPR14
+#endif
+
+#ifndef FOONATHAN_ARRAY_HAS_BYTE
+
+#if defined(__cpp_lib_byte)
+/// \exclude
+#define FOONATHAN_ARRAY_HAS_BYTE 1
+#else
+/// \exclude
+#define FOONATHAN_ARRAY_HAS_BYTE 0
+#endif
+
 #endif
 
 #endif // FOONATHAN_ARRAY_CONFIG_HPP_INCLUDED

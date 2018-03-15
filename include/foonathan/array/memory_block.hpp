@@ -14,11 +14,17 @@ namespace foonathan
         /// The size of a memory block.
         using size_type = std::size_t;
 
+#if FOONATHAN_ARRAY_HAS_BYTE
+        using byte = std::byte;
+#else
+        using byte = unsigned char;
+#endif
+
         /// A pointer to a memory block.
         /// \notes This is used to provide byte-wise access and pointer arithmetic.
-        using raw_pointer = unsigned char*;
+        using raw_pointer = byte*;
 
-        constexpr raw_pointer from_pointer(void* ptr) noexcept
+        constexpr raw_pointer as_raw_pointer(void* ptr) noexcept
         {
             return static_cast<unsigned char*>(ptr);
         }

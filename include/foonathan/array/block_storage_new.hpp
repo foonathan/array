@@ -20,7 +20,7 @@ namespace foonathan
         inline memory_block new_block(size_type size)
         {
             auto ptr = ::operator new[](size);
-            return {from_pointer(ptr), size};
+            return {as_raw_pointer(ptr), size};
         }
 
         inline void delete_block(memory_block&& block)

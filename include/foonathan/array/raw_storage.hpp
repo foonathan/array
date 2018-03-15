@@ -96,7 +96,7 @@ namespace foonathan
         raw_pointer destroy_object(T* object) noexcept
         {
             object->~T();
-            return from_pointer(object);
+            return as_raw_pointer(object);
         }
 
         namespace detail
