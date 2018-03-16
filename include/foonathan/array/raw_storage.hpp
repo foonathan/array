@@ -102,13 +102,13 @@ namespace foonathan
         namespace detail
         {
             template <typename T, typename FwdIter>
-            void destroy_range(std::true_type, FwdIter, FwdIter) noexcept
+            void destroy_range_impl(std::true_type, FwdIter, FwdIter) noexcept
             {
                 // trivially destructible, no need to do anything
             }
 
             template <typename T, typename FwdIter>
-            void destroy_range(std::false_type, FwdIter begin, FwdIter end) noexcept
+            void destroy_range_impl(std::false_type, FwdIter begin, FwdIter end) noexcept
             {
                 for (auto cur = begin; cur != end; ++cur)
                     cur->~T();
@@ -120,7 +120,7 @@ namespace foonathan
         void destroy_range(FwdIter begin, FwdIter end) noexcept
         {
             using type = typename std::iterator_traits<FwdIter>::value_type;
-            detail::destroy_range<type>(std::is_trivially_destructible<type>{}, begin, end);
+            detail::destroy_range_impl<type>(std::is_trivially_destructible<type>{}, begin, end);
         }
 
         /// A RAII object to manage created objects in a range.
@@ -329,6 +329,19 @@ namespace foonathan
         {
             using type = typename std::iterator_traits<InputIter>::value_type;
             return detail::uninitialized_move_copy<type, const type&>(begin, end, block);
+        }
+
+        /// \effects Copies elements of the given range to the uninitialized memory of the given block, casting them to the `T` first.
+        /// \returns A pointer past the last created object.
+        /// \notes If an exception is thrown, the old range has not been modified and all objects created at the new location will be destroyed.
+        template <typename T, typename InputIter>
+        raw_pointer uninitialized_copy_convert(InputIter begin, InputIter end,
+                                               const memory_block& block)
+        {
+            partially_constructed_range<T> range(block);
+            for (auto cur = begin; cur != end; ++cur)
+                range.construct_object(static_cast<T>(*cur));
+            return std::move(range).release();
         }
 
         /// \effects [std::move_if_noexcept]() elements of the given range to the uninitialized memory of the given block,

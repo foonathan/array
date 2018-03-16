@@ -20,7 +20,7 @@ endif()
 
 set(tests
         array_view.cpp
-        block_storage_args.cpp
+    block_storage.cpp
         block_view.cpp
         byte_view.cpp
         contiguous_iterator.cpp

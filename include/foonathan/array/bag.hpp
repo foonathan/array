@@ -74,6 +74,7 @@ namespace foonathan
             {
                 lhs.storage_.swap(lhs.data(), lhs.data_end(), rhs.storage_, rhs.data(),
                                   rhs.data_end());
+                std::swap(lhs.end_, rhs.end_);
             }
 
             //=== element access ===//

@@ -8,7 +8,7 @@
 #include <new>
 #include <type_traits>
 
-#include <foonathan/array/block_storage_arg.hpp>
+#include <foonathan/array/block_storage.hpp>
 #include <foonathan/array/growth_policy.hpp>
 #include <foonathan/array/memory_block.hpp>
 #include <foonathan/array/raw_storage.hpp>
