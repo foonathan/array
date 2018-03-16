@@ -89,7 +89,7 @@ namespace foonathan
                 return {};
             }
 
-            size_type max_size() const noexcept
+            static size_type max_size() noexcept
             {
                 return memory_block::max_size();
             }

@@ -82,7 +82,7 @@ public:
 
     /// \returns The maximum size of a memory block managed by this storage,
     /// or `memory_block::max_size()` if there is no limitation by the storage itself.
-    size_type max_size() const noexcept;
+    static size_type max_size() noexcept;
 };
 
 #endif
@@ -131,6 +131,52 @@ namespace foonathan
             return block_storage_args_t<typename std::decay<Arg>::type>(
                 std::make_tuple(std::forward<Arg>(arg)));
         }
+
+        //=== block_storage_args_storage ===//
+        /// EBO optimized storage for [array::block_storage_args_t]().
+        template <typename Args>
+        class block_storage_args_storage;
+
+        template <>
+        class block_storage_args_storage<block_storage_args_t<>>
+        {
+        public:
+            using arg_type = block_storage_args_t<>;
+
+            explicit block_storage_args_storage(const arg_type&) noexcept {}
+
+            void set_stored_arguments(const arg_type&) noexcept {}
+
+            arg_type stored_arguments() const noexcept
+            {
+                return {};
+            }
+        };
+
+        template <typename... Args>
+        class block_storage_args_storage<block_storage_args_t<Args...>>
+        {
+        public:
+            using arg_type = block_storage_args_t<Args...>;
+
+            explicit block_storage_args_storage(arg_type arguments) noexcept
+            : arguments_(std::move(arguments))
+            {
+            }
+
+            void set_stored_arguments(arg_type arguments) noexcept
+            {
+                arguments_ = std::move(arguments);
+            }
+
+            const arg_type& stored_arguments() const noexcept
+            {
+                return arguments_;
+            }
+
+        private:
+            arg_type arguments_;
+        };
 
         //=== BlockStorage algorithms ===//
         /// `std::true_type` if move operations of a `BlockStorage` will never throw, `std::false_type` otherwise.

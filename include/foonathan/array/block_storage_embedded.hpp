@@ -97,7 +97,7 @@ namespace foonathan
                 return as_raw_pointer(move_to_front(*this, constructed).data_end());
             }
 
-            //== accessors ===//
+            //=== accessors ===//
             memory_block block() const noexcept
             {
                 return memory_block(as_raw_pointer(&storage_), BufferBytes);
@@ -108,7 +108,7 @@ namespace foonathan
                 return {};
             }
 
-            size_type max_size() const noexcept
+            static size_type max_size() noexcept
             {
                 return BufferBytes;
             }

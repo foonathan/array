@@ -23,6 +23,7 @@ set(tests
         block_storage.cpp
         block_storage_embedded.cpp
         block_storage_new.cpp
+        block_storage_sbo.cpp
         block_view.cpp
         byte_view.cpp
         contiguous_iterator.cpp

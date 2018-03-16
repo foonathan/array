@@ -67,7 +67,7 @@ namespace foonathan
             constexpr array_view<T> slice(typename block_view<T>::iterator begin, size_type n) const
                 noexcept
             {
-                return array_view<T>(begin, begin + n);
+                return array_view<T>(begin, begin + std::ptrdiff_t(n));
             }
         };
 
