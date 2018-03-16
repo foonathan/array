@@ -21,6 +21,8 @@ namespace foonathan
         ///
         /// The objects don't have any particular ordering, so it doesn't provide an index operator.
         /// Use [array::array_view]() where that is required.
+        /// \notes Write an implicit conversion operator for containers that have contiguous storage,
+        /// and specialize the [array::block_traits]() if it doesn't provide a `value_type` typedef.
         template <typename T>
         class block_view
         {
@@ -163,6 +165,62 @@ namespace foonathan
         {
             return block_view<T>(array);
         }
+
+        /// Traits for types that are blocks.
+        ///
+        /// A type is a block if it has a valid specialization and is convertible to an [array::block_view]().
+        /// The traits must be specialized for `T` and `const T` to allow propagating the const-ness.
+        ///
+        /// The default specialization works for all types having a `value_type` typedef,
+        /// and where `T` is convertible to `block_view<T::value_type>`,
+        /// and `const T` convertible to `block_view<const T::value_type>`.
+        template <typename T>
+        class block_traits
+        {
+            using value_t = typename T::value_type;
+            using cv_value_t =
+                typename std::conditional<std::is_const<T>::value, const value_t, value_t>::type;
+            using convertible = std::is_convertible<T, array::block_view<cv_value_t>>;
+
+        public:
+            using value_type = typename std::enable_if<convertible::value, cv_value_t>::type;
+            using block_view =
+                typename std::enable_if<convertible::value, array::block_view<cv_value_t>>::type;
+        };
+
+        /// Specialization for arrays.
+        template <typename T, std::size_t N>
+        class block_traits<T[N]>
+        {
+        public:
+            using value_type = T;
+            using block_view = array::block_view<T>;
+        };
+
+        /// Specialization for [std::initializer_list]().
+        template <typename T>
+        class block_traits<std::initializer_list<T>>
+        {
+        public:
+            using value_type = const T;
+            using block_view = array::block_view<const T>;
+        };
+
+        /// Specialization for [std::initializer_list]().
+        template <typename T>
+        class block_traits<const std::initializer_list<T>>
+        {
+        public:
+            using value_type = const T;
+            using block_view = array::block_view<const T>;
+        };
+
+        /// Calculates the value type of the [array::block_view]() the type is convertible to.
+        /// Pass in a `const` type to get the value type for a `const` object.
+        /// \notes This typedef is ill-formed if the type is not actually a block.
+        template <class Block>
+        using block_value_type =
+            typename block_traits<typename std::remove_reference<Block>::type>::value_type;
     }
 } // namespace foonathan::array
 

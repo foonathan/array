@@ -18,6 +18,8 @@ namespace foonathan
         /// \notes If you don't need the special functions like array access, use [array::block_view]() instead.
         /// \notes Inheritance is only used to easily inherit all functionality as well as allow conversion without a user-defined conversion.
         /// Slicing is permitted and works, but the type isn't meant to be used polymorphically.
+        /// \notes Write an implicit conversion operator for containers that have contiguous storage with ordering,
+        /// and specialize the [array::block_traits]() if it does not provide a `value_type` typedef.
         template <typename T>
         class array_view : public block_view<T>
         {
