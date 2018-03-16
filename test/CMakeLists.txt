@@ -20,11 +20,12 @@ endif()
 
 set(tests
         array_view.cpp
-    block_storage.cpp
+        block_storage.cpp
         block_view.cpp
         byte_view.cpp
         contiguous_iterator.cpp
         growth_policy.cpp
+        input_view.cpp
         memory_block.cpp
         pointer_iterator.cpp
         raw_storage.cpp
