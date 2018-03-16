@@ -49,7 +49,7 @@ public:
                      BlockStorage& rhs, block_view<T>& rhs_constructed)
                         noexcept(!embedded_storage::value || std::is_nothrow_move_constructible<T>::value);
 
-    //=== change size ===//
+    //=== reserve/shrink_to_fit ===//
     /// \effects Increases the allocated memory block by at least `min_additional`.
     /// The range of already created objects is passed as well,
     /// they shall be moved to the beginning of the new location
