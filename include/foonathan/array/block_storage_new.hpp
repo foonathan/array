@@ -62,9 +62,8 @@ namespace foonathan
 
             //=== reserve/shrink_to_fit ===//
             template <typename T>
-            raw_pointer reserve(size_type min_additional, const block_view<T>& constructed)
+            raw_pointer reserve(size_type min_additional_bytes, const block_view<T>& constructed)
             {
-                auto min_additional_bytes = min_additional * sizeof(T);
                 auto new_size  = GrowthPolicy::growth_size(block_.size(), min_additional_bytes);
                 auto new_block = array::new_block(new_size);
                 return change_block(constructed, std::move(new_block));
@@ -88,6 +87,11 @@ namespace foonathan
             arg_type arguments() const noexcept
             {
                 return {};
+            }
+
+            size_type max_size() const noexcept
+            {
+                return memory_block::max_size();
             }
 
         private:

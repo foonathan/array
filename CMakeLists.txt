@@ -7,6 +7,7 @@ set(header_files
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/array_view.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/bag.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/block_storage.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/block_storage_embedded.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/block_storage_new.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/block_view.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/byte_view.hpp

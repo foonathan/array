@@ -6,6 +6,7 @@
 #define FOONATHAN_ARRAY_BLOCK_STORAGE_ARG_HPP_INCLUDED
 
 #include <algorithm>
+#include <cassert>
 #include <tuple>
 
 #include <foonathan/array/block_view.hpp>
@@ -50,7 +51,7 @@ public:
                         noexcept(!embedded_storage::value || std::is_nothrow_move_constructible<T>::value);
 
     //=== reserve/shrink_to_fit ===//
-    /// \effects Increases the allocated memory block by at least `min_additional`.
+    /// \effects Increases the allocated memory block by at least `min_additional_bytes`.
     /// The range of already created objects is passed as well,
     /// they shall be moved to the beginning of the new location
     /// as if [array::uninitialized_destructive_move]() was used.
@@ -60,7 +61,7 @@ public:
     /// \notes Use [array::uninitialized_destructive_move]() to move the objects over,
     /// it already provides the strong exception safety for you.
     template <typename T>
-    raw_pointer reserve(size_type min_additional, const block_view<T>& constructed_objects);
+    raw_pointer reserve(size_type min_additional_bytes, const block_view<T>& constructed_objects);
 
     /// \effects Non-binding request to decrease the currently allocated memory block to the minimum needed.
     /// The range of already created objects is passed, those must be moved to the new location like with `reserve()`.
@@ -78,6 +79,10 @@ public:
 
     /// \returns The arguments passed to the constructor.
     arg_type arguments() const noexcept;
+
+    /// \returns The maximum size of a memory block managed by this storage,
+    /// or `memory_block::max_size()` if there is no limitation by the storage itself.
+    size_type max_size() const noexcept;
 };
 
 #endif
@@ -292,6 +297,43 @@ namespace foonathan
             return dest_constructed;
 
             // destructor of temp frees previous memory of dest
+        }
+
+        /// Normalizes a block by moving all constructed objects to the front.
+        /// \effects Moves the elements currently constructed at `[constructed.begin(), constructed.end())`
+        /// to `[storage.block().begin(), storage.block.begin() + constructed.size())`.
+        /// \returns A view to the new location of the objects.
+        /// \throws Anything thrown by the move constructor or assignment operator.
+        template <class BlockStorage, typename T>
+        block_view<T> move_to_front(BlockStorage& storage, block_view<T> constructed) noexcept(
+            std::is_nothrow_move_constructible<T>::value)
+        {
+            auto offset = constructed.block().begin() - storage.block().begin();
+            assert(offset >= 0);
+            if (offset == 0)
+                // already at the front
+                return constructed;
+            else if (offset >= constructed.size())
+            {
+                // doesn't overlap, just move forward
+                auto new_end = uninitialized_destructive_move(constructed.begin(),
+                                                              constructed.end(), storage.block());
+                return block_view<T>(memory_block(storage.block().begin(), new_end));
+            }
+            else
+            {
+                // move construct the first offset elements at the correct location
+                auto mid = constructed.begin() + offset;
+                uninitialized_move(constructed.begin(), mid, storage.block());
+
+                // now we can assign the next elements to the already moved ones
+                auto new_end = std::move(mid, constructed.end(), constructed.begin());
+
+                // destroy the unnecessary trailing elements
+                destroy_range(new_end, constructed.end());
+
+                return block_view<T>(to_pointer<T>(storage.block().begin()), constructed.size());
+            }
         }
     }
 } // namespace foonathan::array
