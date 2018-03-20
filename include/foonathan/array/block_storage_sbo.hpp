@@ -54,8 +54,8 @@ namespace foonathan
                     // forward to small storage
                     block_storage_embedded<SmallBufferBytes>::swap(lhs.storage_, lhs_constructed,
                                                                    rhs.storage_, rhs_constructed);
-                    assert(lhs.block_ == lhs.storage_.block());
-                    assert(rhs.block_ == rhs.storage_.block());
+                    assert(lhs.block_.begin() == lhs.storage_.block().begin());
+                    assert(rhs.block_.begin() == rhs.storage_.block().begin());
 
                     // propagate stored arguments as well
                     auto tmp_args = lhs.arguments();
@@ -170,7 +170,7 @@ namespace foonathan
                 assert(is_big() && big_storage().block().empty());
 
                 // destroy the big storage
-                destroy_object(&big_storage);
+                destroy_object(&big_storage());
 
                 raw_pointer new_end;
                 try
@@ -235,7 +235,7 @@ namespace foonathan
                 BigBlockStorage::swap(*big_storage, big_constructed, temp, temp_constructed);
 
                 // elements successfully transferred, finalize by updating block
-                block_ = big_storage().block();
+                block_ = big_storage->block();
                 return as_raw_pointer(big_constructed.data_end());
             }
 
