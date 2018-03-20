@@ -22,7 +22,8 @@ namespace
 
         ~leak_checker() noexcept(false)
         {
-            REQUIRE(leak_count == old);
+            if (leak_count != old)
+                FAIL("leaking objects somewhere");
         }
     };
 

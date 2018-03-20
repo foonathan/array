@@ -21,6 +21,7 @@ endif()
 set(tests
         array_view.cpp
         block_storage.cpp
+        block_storage_algorithm.hpp
         block_storage_embedded.cpp
         block_storage_new.cpp
         block_storage_sbo.cpp

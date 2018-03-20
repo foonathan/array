@@ -184,7 +184,7 @@ namespace foonathan
         /// They'll never throw if the storage does not use embedded storage or the type is nothrow move constructible.
         template <class BlockStorage, typename T>
         using block_storage_nothrow_move =
-            std::integral_constant<bool, !BlockStorage::embbedded_storage::value
+            std::integral_constant<bool, !BlockStorage::embedded_storage::value
                                              || std::is_nothrow_move_constructible<T>::value>;
 
         /// \effects Clears a block storage by destroying all constructed objects and releasing the memory.
@@ -193,8 +193,9 @@ namespace foonathan
         {
             destroy_range(constructed.begin(), constructed.end());
 
-            BlockStorage empty(storage.arguments());
-            BlockStorage::swap(storage, block_view<T>(), empty, block_view<T>());
+            BlockStorage  empty(storage.arguments());
+            block_view<T> empty_constructed;
+            BlockStorage::swap(storage, empty_constructed, empty, empty_constructed);
             // this will never throw as there are no objects that need moving
 
             // storage now owns no memory
@@ -217,6 +218,44 @@ namespace foonathan
                 return storage.reserve(new_size - storage.block().size(), block_view<T>());
         }
 
+        /// Normalizes a block by moving all constructed objects to the front.
+        /// \effects Moves the elements currently constructed at `[constructed.begin(), constructed.end())`
+        /// to `[storage.block().begin(), storage.block.begin() + constructed.size())`.
+        /// \returns A view to the new location of the objects.
+        /// \throws Anything thrown by the move constructor or assignment operator.
+        template <class BlockStorage, typename T>
+        block_view<T> move_to_front(BlockStorage& storage, block_view<T> constructed) noexcept(
+            std::is_nothrow_move_constructible<T>::value)
+        {
+            auto offset = constructed.block().begin() - storage.block().begin();
+            assert(offset >= 0);
+            assert(std::size_t(offset) % sizeof(T) == 0);
+            if (offset == 0)
+                // already at the front
+                return constructed;
+            else if (offset >= std::ptrdiff_t(constructed.size() * sizeof(T)))
+            {
+                // doesn't overlap, just move forward
+                auto new_end = uninitialized_destructive_move(constructed.begin(),
+                                                              constructed.end(), storage.block());
+                return block_view<T>(memory_block(storage.block().begin(), new_end));
+            }
+            else
+            {
+                // move construct the first offset elements at the correct location
+                auto mid = constructed.begin() + std::size_t(offset) / sizeof(T);
+                uninitialized_move(constructed.begin(), mid, storage.block());
+
+                // now we can assign the next elements to the already moved ones
+                auto new_end = std::move(mid, constructed.end(), constructed.begin());
+
+                // destroy the unnecessary trailing elements
+                destroy_range(new_end, constructed.end());
+
+                return block_view<T>(to_pointer<T>(storage.block().begin()), constructed.size());
+            }
+        }
+
         /// \effects Increases the size of the block owned by `dest` to be as big as needed.
         /// then copy constructs or assigns the objects over.
         /// \returns A view to the objects now constructed in `dest`.
@@ -230,8 +269,10 @@ namespace foonathan
                                               T>::value,
                           "type not convertible");
 
-            auto new_size = size_type(std::distance(begin, end));
-            auto cur_size = dest_constructed.size();
+            dest_constructed = move_to_front(dest, dest_constructed);
+
+            auto new_size = size_type(std::distance(begin, end)) * sizeof(T);
+            auto cur_size = dest_constructed.size() * sizeof(T);
             if (new_size <= cur_size)
             {
                 auto new_end = std::copy(begin, end, dest_constructed.begin());
@@ -240,7 +281,7 @@ namespace foonathan
             }
             else if (new_size <= dest.block().size())
             {
-                auto assign_end = std::next(begin, cur_size);
+                auto assign_end = std::next(begin, std::ptrdiff_t(dest_constructed.size()));
                 std::copy(begin, assign_end, dest_constructed.begin());
                 auto new_end =
                     uninitialized_copy_convert<T>(assign_end, end,
@@ -252,7 +293,7 @@ namespace foonathan
             else
             {
                 auto new_begin = clear_and_reserve(dest, dest_constructed, new_size);
-                auto new_end   = uninitialized_copy(begin, end, dest.block());
+                auto new_end   = uninitialized_copy_convert<T>(begin, end, dest.block());
                 return block_view<T>(memory_block(new_begin, new_end));
             }
         }
@@ -266,6 +307,8 @@ namespace foonathan
         block_view<T> fill(BlockStorage& dest, block_view<T> dest_constructed, size_type n,
                            const T& obj)
         {
+            dest_constructed = move_to_front(dest, dest_constructed);
+
             auto cur_size = dest_constructed.size();
             if (n <= cur_size)
             {
@@ -273,7 +316,7 @@ namespace foonathan
                 destroy_range(new_end, dest_constructed.end());
                 return block_view<T>(dest_constructed.data(), n);
             }
-            else if (n <= dest.block().size())
+            else if (n * sizeof(T) <= dest.block().size())
             {
                 std::fill_n(dest_constructed.begin(), cur_size, obj);
                 auto new_end =
@@ -284,7 +327,7 @@ namespace foonathan
             }
             else
             {
-                auto new_begin = clear_and_reserve(dest, dest_constructed, n);
+                auto new_begin = clear_and_reserve(dest, dest_constructed, n * sizeof(T));
                 auto new_end   = uninitialized_fill(dest.block(), n, obj);
                 return block_view<T>(memory_block(new_begin, new_end));
             }
@@ -317,6 +360,15 @@ namespace foonathan
             return result;
         }
 
+        namespace detail
+        {
+            template <typename T>
+            struct const_block_view
+            {
+                using type = block_view<const T>;
+            };
+        } // namespace detail
+
         /// Copy assignment for block storage.
         /// \effects Allocates new memory using the arguments from `other` and copies the objects over.
         /// Then changes `dest` to own that memory, releasing previously owned memory.
@@ -327,59 +379,27 @@ namespace foonathan
         /// This makes it less efficient as memory of `dest` cannot be reused.
         template <class BlockStorage, typename T>
         block_view<T> copy_assign(BlockStorage& dest, block_view<T> dest_constructed,
-                                  const BlockStorage& other, block_view<const T> other_constructed)
+                                  const BlockStorage&                        other,
+                                  typename detail::const_block_view<T>::type other_constructed)
         {
             // 1. create a copy of the objects in temporary storage
-            BlockStorage temp(other.argument());
-            auto         temp_constructed =
-                assign(temp, block_view<T>(), other_constructed.begin(), other_constructed.end());
-            // only the reserve call can throw, and if it does, nothing has changed
+            BlockStorage temp(other.arguments());
+            auto new_begin = temp.reserve(other_constructed.size() * sizeof(T), block_view<T>());
+            auto new_end   = uninitialized_copy(other_constructed.begin(), other_constructed.end(),
+                                              temp.block());
+            auto temp_constructed = block_view<T>(memory_block(new_begin, new_end));
+            // if it throws, nothing has changed
 
-            // 2. swap temp and destination
+            // 2. destroy existing objects
+            destroy_range(dest_constructed.begin(), dest_constructed.end());
+            dest_constructed = block_view<T>();
+
+            // 3. swap temp and destination
             BlockStorage::swap(temp, temp_constructed, dest, dest_constructed);
-            // temp now owns the memory of dest
-            // dest now owns the memory of temp containing the objects in dest_constructed
 
             return dest_constructed;
 
             // destructor of temp frees previous memory of dest
-        }
-
-        /// Normalizes a block by moving all constructed objects to the front.
-        /// \effects Moves the elements currently constructed at `[constructed.begin(), constructed.end())`
-        /// to `[storage.block().begin(), storage.block.begin() + constructed.size())`.
-        /// \returns A view to the new location of the objects.
-        /// \throws Anything thrown by the move constructor or assignment operator.
-        template <class BlockStorage, typename T>
-        block_view<T> move_to_front(BlockStorage& storage, block_view<T> constructed) noexcept(
-            std::is_nothrow_move_constructible<T>::value)
-        {
-            auto offset = constructed.block().begin() - storage.block().begin();
-            assert(offset >= 0);
-            if (offset == 0)
-                // already at the front
-                return constructed;
-            else if (offset >= constructed.size())
-            {
-                // doesn't overlap, just move forward
-                auto new_end = uninitialized_destructive_move(constructed.begin(),
-                                                              constructed.end(), storage.block());
-                return block_view<T>(memory_block(storage.block().begin(), new_end));
-            }
-            else
-            {
-                // move construct the first offset elements at the correct location
-                auto mid = constructed.begin() + offset;
-                uninitialized_move(constructed.begin(), mid, storage.block());
-
-                // now we can assign the next elements to the already moved ones
-                auto new_end = std::move(mid, constructed.end(), constructed.begin());
-
-                // destroy the unnecessary trailing elements
-                destroy_range(new_end, constructed.end());
-
-                return block_view<T>(to_pointer<T>(storage.block().begin()), constructed.size());
-            }
         }
     }
 } // namespace foonathan::array
