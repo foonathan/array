@@ -14,6 +14,11 @@ namespace foonathan
 {
     namespace array
     {
+        /// Tag type and object to mark an empty view.
+        constexpr struct empty_t
+        {
+        } empty;
+
         /// A lightweight view into a memory block containing objects of the given type.
         ///
         /// The elements can be mutated if `T` is not `const`.
@@ -40,6 +45,12 @@ namespace foonathan
             //=== constructors ===//
             /// \effects Creates an empty view.
             constexpr block_view() noexcept : begin_(nullptr), end_(nullptr) {}
+
+            /// \effects Creates an empty view starting at the specific address.
+            explicit constexpr block_view(empty_t, raw_pointer ptr)
+            : begin_(to_pointer<T>(ptr)), end_(begin_)
+            {
+            }
 
             /// \effects Creates a view on the [array::memory_block]().
             /// \requires The [array::memory_block]() must contain objects of type `T`.

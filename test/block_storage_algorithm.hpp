@@ -32,7 +32,7 @@ namespace test
         auto         empty_size = storage.block().size();
 
         auto size = 4u * sizeof(test_type);
-        storage.reserve(size, block_view<test_type>());
+        storage.reserve(size, block_view<test_type>(empty, storage.block().begin()));
 
         auto end         = uninitialized_fill(storage.block(), 4u, test_type());
         auto constructed = block_view<test_type>(memory_block(storage.block().begin(), end));
@@ -54,7 +54,7 @@ namespace test
         auto         empty_size = storage.block().size();
 
         auto size = 4u * sizeof(test_type);
-        storage.reserve(size, block_view<test_type>());
+        storage.reserve(size, block_view<test_type>(empty, storage.block().begin()));
 
         auto end         = uninitialized_fill(storage.block(), 4u, test_type());
         auto constructed = block_view<test_type>(memory_block(storage.block().begin(), end));
@@ -96,7 +96,8 @@ namespace test
         };
 
         BlockStorage storage(arguments);
-        storage.reserve(8u * sizeof(test_type), block_view<test_type>());
+        storage.reserve(8u * sizeof(test_type),
+                        block_view<test_type>(empty, storage.block().begin()));
 
         int                   array[] = {0xF0F0, 0xF1F1};
         block_view<test_type> new_constructed;
@@ -152,7 +153,7 @@ namespace test
         BlockStorage storage(arguments);
 
         auto size = 4u * sizeof(test_type);
-        storage.reserve(size, block_view<test_type>());
+        storage.reserve(size, block_view<test_type>(empty, storage.block().begin()));
         auto cur_size = storage.block().size();
 
         auto end         = uninitialized_fill(storage.block(), 3u, test_type(0xFFFF));
@@ -230,7 +231,7 @@ namespace test
         BlockStorage storage(arguments);
 
         auto size = 4u * sizeof(test_type);
-        storage.reserve(size, block_view<test_type>());
+        storage.reserve(size, block_view<test_type>(empty, storage.block().begin()));
         auto cur_size = storage.block().size();
 
         auto end         = uninitialized_fill(storage.block(), 3u, test_type(0xFFFF));
@@ -305,7 +306,8 @@ namespace test
         BlockStorage storage(arguments);
         auto         empty_size = storage.block().size();
 
-        storage.reserve(4u * sizeof(test_type), block_view<test_type>());
+        storage.reserve(4u * sizeof(test_type),
+                        block_view<test_type>(empty, storage.block().begin()));
 
         auto end         = uninitialized_fill(storage.block(), 3u, test_type(0xFFFF));
         auto constructed = block_view<test_type>(memory_block(storage.block().begin(), end));
@@ -313,7 +315,8 @@ namespace test
         SECTION("less than constructed")
         {
             BlockStorage other(arguments);
-            other.reserve(2u * sizeof(test_type), block_view<test_type>());
+            other.reserve(2u * sizeof(test_type),
+                          block_view<test_type>(empty, other.block().begin()));
             auto other_size = other.block().size();
 
             auto other_end = uninitialized_fill(other.block(), 2u, test_type(0xF0F0));
@@ -336,7 +339,8 @@ namespace test
         SECTION("less than size")
         {
             BlockStorage other(arguments);
-            other.reserve(4u * sizeof(test_type), block_view<test_type>());
+            other.reserve(4u * sizeof(test_type),
+                          block_view<test_type>(empty, other.block().begin()));
             auto other_size = other.block().size();
 
             auto other_end = uninitialized_fill(other.block(), 4u, test_type(0xF0F0));
@@ -361,7 +365,8 @@ namespace test
         SECTION("more than size")
         {
             BlockStorage other(arguments);
-            other.reserve(8u * sizeof(test_type), block_view<test_type>());
+            other.reserve(8u * sizeof(test_type),
+                          block_view<test_type>(empty, other.block().begin()));
             auto other_size = other.block().size();
 
             auto other_end = uninitialized_fill(other.block(), 8u, test_type(0xF0F0));
@@ -390,8 +395,8 @@ namespace test
 
         BlockStorage other(arguments);
 
-        auto new_constructed =
-            move_assign(storage, constructed, std::move(other), block_view<test_type>());
+        auto new_constructed = move_assign(storage, constructed, std::move(other),
+                                           block_view<test_type>(empty, other.block().begin()));
 
         REQUIRE(other.block().size() == empty_size);
 
@@ -414,7 +419,8 @@ namespace test
         BlockStorage storage(arguments);
         auto         empty_size = storage.block().size();
 
-        storage.reserve(4u * sizeof(test_type), block_view<test_type>());
+        storage.reserve(4u * sizeof(test_type),
+                        block_view<test_type>(empty, storage.block().begin()));
 
         auto end         = uninitialized_fill(storage.block(), 3u, test_type(0xFFFF));
         auto constructed = block_view<test_type>(memory_block(storage.block().begin(), end));
@@ -422,7 +428,8 @@ namespace test
         SECTION("less than constructed")
         {
             BlockStorage other(arguments);
-            other.reserve(2u * sizeof(test_type), block_view<test_type>());
+            other.reserve(2u * sizeof(test_type),
+                          block_view<test_type>(empty, other.block().begin()));
             auto other_size = other.block().size();
 
             auto other_end = uninitialized_fill(other.block(), 2u, test_type(0xF0F0));
@@ -446,7 +453,8 @@ namespace test
         SECTION("less than size")
         {
             BlockStorage other(arguments);
-            other.reserve(4u * sizeof(test_type), block_view<test_type>());
+            other.reserve(4u * sizeof(test_type),
+                          block_view<test_type>(empty, other.block().begin()));
             auto other_size = other.block().size();
 
             auto other_end = uninitialized_fill(other.block(), 4u, test_type(0xF0F0));
@@ -472,7 +480,8 @@ namespace test
         SECTION("more than size")
         {
             BlockStorage other(arguments);
-            other.reserve(8u * sizeof(test_type), block_view<test_type>());
+            other.reserve(8u * sizeof(test_type),
+                          block_view<test_type>(empty, other.block().begin()));
             auto other_size = other.block().size();
 
             auto other_end = uninitialized_fill(other.block(), 8u, test_type(0xF0F0));
@@ -502,13 +511,26 @@ namespace test
 
         BlockStorage other(arguments);
 
-        auto new_constructed = copy_assign(storage, constructed, other, block_view<test_type>());
+        auto new_constructed = copy_assign(storage, constructed, other,
+                                           block_view<test_type>(empty, other.block().begin()));
 
         REQUIRE(other.block().size() == empty_size);
 
         REQUIRE(storage.block().size() == empty_size);
         REQUIRE(new_constructed.data() == to_pointer<test_type>(storage.block().begin()));
         REQUIRE(new_constructed.size() == 0u);
+    }
+
+    template <class BlockStorage>
+    void test_block_storage_algorithm(const typename BlockStorage::arg_type& args)
+    {
+        test_clear_and_shrink<BlockStorage>(args);
+        test_clear_and_reserve<BlockStorage>(args);
+        test_move_to_front<BlockStorage>(args);
+        test_assign<BlockStorage>(args);
+        test_fill<BlockStorage>(args);
+        test_move_assign<BlockStorage>(args);
+        test_copy_assign<BlockStorage>(args);
     }
 }
 

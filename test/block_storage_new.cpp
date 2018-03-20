@@ -14,12 +14,6 @@ TEST_CASE("block_storage_new", "[BlockStorage]")
 {
     // TODO: proper test of storage itself
 
-    using namespace test;
-    test_clear_and_shrink<block_storage_new<default_growth>>({});
-    test_clear_and_reserve<block_storage_new<default_growth>>({});
-    test_move_to_front<block_storage_new<default_growth>>({});
-    test_assign<block_storage_new<default_growth>>({});
-    test_fill<block_storage_new<default_growth>>({});
-    test_move_assign<block_storage_new<default_growth>>({});
-    test_copy_assign<block_storage_new<default_growth>>({});
+    test::test_block_storage_algorithm<block_storage_new<default_growth>>({});
+    test::test_block_storage_algorithm<block_storage_new<no_extra_growth>>({});
 }

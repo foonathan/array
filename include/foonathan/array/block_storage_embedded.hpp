@@ -54,35 +54,38 @@ namespace foonathan
                 // swap the common prefix over
                 auto lhs_size = lhs_constructed.size();
                 auto rhs_size = rhs_constructed.size();
-                auto min_size = std::min(lhs_size, rhs_size);
+                auto min_size = std::ptrdiff_t(std::min(lhs_size, rhs_size));
                 std::swap_ranges(lhs_constructed.begin(), lhs_constructed.begin() + min_size,
-                                 rhs_constructed);
+                                 rhs_constructed.begin());
 
                 // now move the remaining elements over
+                auto min_size_bytes = min_size * std::ptrdiff_t(sizeof(T));
                 if (lhs_size > rhs_size)
                     uninitialized_destructive_move(lhs_constructed.begin() + min_size,
                                                    lhs_constructed.end(),
-                                                   memory_block(rhs.block().begin() + min_size,
+                                                   memory_block(rhs.block().begin()
+                                                                    + min_size_bytes,
                                                                 rhs.block().end()));
                 else
                     uninitialized_destructive_move(rhs_constructed.begin() + min_size,
                                                    rhs_constructed.end(),
-                                                   memory_block(lhs.block().begin() + min_size,
+                                                   memory_block(lhs.block().begin()
+                                                                    + min_size_bytes,
                                                                 lhs.block().end()));
 
-                lhs_constructed = block_view<T>(memory_block(lhs.block().begin(), rhs_size));
-                rhs_constructed = block_view<T>(memory_block(rhs.block().begin(), lhs_size));
+                lhs_constructed = block_view<T>(to_pointer<T>(lhs.block().begin()), rhs_size);
+                rhs_constructed = block_view<T>(to_pointer<T>(rhs.block().begin()), lhs_size);
             }
 
             //=== reserve/shrink_to_fit ===//
             template <typename T>
-            raw_pointer reserve(size_type min_additional_bytes, const block_view<T>& constructed)
+            raw_pointer reserve(size_type min_additional_bytes, block_view<T> constructed)
             {
                 // move to front to allow maximal size
                 auto new_end = as_raw_pointer(move_to_front(*this, constructed).data_end());
 
                 // check for overflow
-                auto new_size = block().size() + min_additional_bytes;
+                auto new_size = constructed.size() * sizeof(T) + min_additional_bytes;
                 if (new_size <= max_size())
                     return new_end;
                 else
@@ -115,7 +118,7 @@ namespace foonathan
 
         private:
             using storage = typename std::aligned_storage<BufferBytes>::type;
-            storage storage_;
+            mutable storage storage_;
         };
     }
 } // namespace foonathan::array

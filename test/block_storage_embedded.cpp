@@ -6,9 +6,13 @@
 
 #include <catch.hpp>
 
+#include "block_storage_algorithm.hpp"
+
 using namespace foonathan::array;
 
 TEST_CASE("block_storage_embedded", "[BlockStorage]")
 {
-    // TODO
+    // TODO: proper test of storage itself
+
+    test::test_block_storage_algorithm<block_storage_embedded<16 * 2>>({});
 }
