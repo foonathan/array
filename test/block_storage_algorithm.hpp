@@ -164,7 +164,7 @@ namespace test
         SECTION("less than constructed")
         {
             auto new_constructed =
-                assign(storage, constructed, std::begin(values), std::begin(values) + 2);
+                assign_copy(storage, constructed, std::begin(values), std::begin(values) + 2);
             REQUIRE(storage.block().size() == cur_size);
 
             REQUIRE(new_constructed.data() == constructed.data());
@@ -177,7 +177,7 @@ namespace test
         SECTION("less than size")
         {
             auto new_constructed =
-                assign(storage, constructed, std::begin(values), std::begin(values) + 4);
+                assign_copy(storage, constructed, std::begin(values), std::begin(values) + 4);
             REQUIRE(storage.block().size() == cur_size);
 
             REQUIRE(new_constructed.data() == constructed.data());
@@ -192,7 +192,7 @@ namespace test
         SECTION("more than size")
         {
             auto new_constructed =
-                assign(storage, constructed, std::begin(values), std::begin(values) + 8);
+                assign_copy(storage, constructed, std::begin(values), std::begin(values) + 8);
             REQUIRE(storage.block().size() >= 8 * sizeof(test_type));
 
             REQUIRE(new_constructed.data() == to_pointer<test_type>(storage.block().begin()));
@@ -209,8 +209,9 @@ namespace test
             constructed = new_constructed;
         }
 
-        cur_size             = storage.block().size();
-        auto new_constructed = assign(storage, constructed, std::begin(values), std::begin(values));
+        cur_size = storage.block().size();
+        auto new_constructed =
+            assign_copy(storage, constructed, std::begin(values), std::begin(values));
         REQUIRE(storage.block().size() == cur_size);
 
         REQUIRE(new_constructed.data() == constructed.data());
@@ -532,6 +533,6 @@ namespace test
         test_move_assign<BlockStorage>(args);
         test_copy_assign<BlockStorage>(args);
     }
-}
+} // namespace test
 
 #endif // FOONATHAN_ARRAY_BLOCK_STORAGE_ALGORITHM_HPP_INCLUDED

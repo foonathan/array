@@ -45,7 +45,7 @@ namespace foonathan
             /// \effects Creates it giving it a view it will use as input.
             /// It will move the elements from that view.
             input_view(move_tag, block_view<T> input) noexcept
-            : storage_ptr_(this), constructed_(input)
+            : storage_ptr_(move_marker()), constructed_(input)
             {
             }
 
@@ -53,7 +53,14 @@ namespace foonathan
             /// It will copy the elements from that view.
             input_view(block_view<const T> input) noexcept
             // const_cast is okay, it will never try to modify the elements
-            : storage_ptr_(move_marker()), constructed_(const_cast<T*>(input.data()), input.size())
+            : storage_ptr_(nullptr), constructed_(const_cast<T*>(input.data()), input.size())
+            {
+            }
+
+            /// \effects Creates it from the block, it will copy the elements.
+            template <typename Block, typename = typename std::enable_if<std::is_same<
+                                          const T, const block_value_type<Block>>::value>::type>
+            input_view(const Block& input) noexcept : input_view(block_view<const T>(input))
             {
             }
 
@@ -82,7 +89,7 @@ namespace foonathan
             /// this will always return `false`.
             bool will_copy() const noexcept
             {
-                return storage_ptr_ != nullptr && storage_ptr_ != move_marker();
+                return storage_ptr_ == nullptr;
             }
 
             /// \returns The storage it can steal the memory from.
@@ -97,32 +104,22 @@ namespace foonathan
             /// \returns A view on the now constructed objects in `dest`.
             /// This either views the same location as before (if `can_steal_memory() == true` and no embedded storage was used),
             /// or starts at the beginning of the memory of `dest`.
-            /// \notes In particular, the view may not start at the beginning if it didn't start at the beginning in `dest`.
+            /// \notes In particular, the view could not start at the beginning if it didn't start at the beginning in `dest`.
             /// \throws Anything thrown by the allocation function or `T`s copy/move constructor.
-            block_view<T> release(BlockStorage& dest) &&
+            block_view<T> release(BlockStorage& dest, block_view<T> dest_constructed) &&
             {
                 if (will_steal_memory())
                 {
                     // steal memory from storage
-                    block_view<T> dest_constructed;
                     BlockStorage::swap(dest, dest_constructed, origin_storage(), constructed_);
+                    // destroy the elements previously owned by the storage
+                    destroy_range(constructed_.begin(), constructed_.end());
                     return dest_constructed;
                 }
+                else if (will_move())
+                    return assign_move_impl(0, dest, dest_constructed);
                 else
-                {
-                    // can't steal memory, need to reserve new one
-                    auto new_begin = dest.reserve(constructed_.size(), block_view<T>());
-
-                    raw_pointer new_end;
-                    if (will_move())
-                        new_end = uninitialized_move_if_noexcept(constructed_.begin(),
-                                                                 constructed_.end(), dest.block());
-                    else
-                        new_end = uninitialized_copy(constructed_.begin(), constructed_.end(),
-                                                     dest.block());
-
-                    return block_view<T>(memory_block(new_begin, new_end));
-                }
+                    return assign_copy_impl(0, dest, dest_constructed);
             }
 
         private:
@@ -130,6 +127,34 @@ namespace foonathan
             {
                 static char dummy;
                 return &dummy;
+            }
+
+            template <typename U>
+            auto assign_move_impl(int, BlockStorage& dest, block_view<U> dest_constructed) ->
+                typename std::enable_if<std::is_move_constructible<U>::value, block_view<U>>::type
+            {
+                return assign_move(dest, dest_constructed, constructed_.begin(),
+                                   constructed_.end());
+            }
+            template <typename U>
+            block_view<U> assign_move_impl(short, BlockStorage&, block_view<U>)
+            {
+                assert(false && "trying to move non-moveable type");
+                return {};
+            }
+
+            template <typename U>
+            auto assign_copy_impl(int, BlockStorage& dest, block_view<U> dest_constructed) ->
+                typename std::enable_if<std::is_copy_constructible<U>::value, block_view<U>>::type
+            {
+                return assign_copy(dest, dest_constructed, constructed_.begin(),
+                                   constructed_.end());
+            }
+            template <typename U>
+            block_view<U> assign_copy_impl(short, BlockStorage&, block_view<U>)
+            {
+                assert(false && "trying to copy non-copyable type");
+                return {};
             }
 
             // if nullptr: copy elements
@@ -171,7 +196,7 @@ namespace foonathan
             static_assert(!std::is_const<Block>::value, "cannot move from const");
             return detail::move_t<block_value_type<Block>>(move_tag{}, block);
         }
-    }
-} // namespace foonathan::array
+    } // namespace array
+} // namespace foonathan
 
 #endif // FOONATHAN_ARRAY_INPUT_VIEW_HPP_INCLUDED

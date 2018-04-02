@@ -331,7 +331,7 @@ namespace foonathan
             return detail::uninitialized_move_copy<type, const type&>(begin, end, block);
         }
 
-        /// \effects Copies elements of the given range to the uninitialized memory of the given block, casting them to the `T` first.
+        /// \effects Copies elements of the given range to the uninitialized memory of the given block, implicitly converting all elements.
         /// \returns A pointer past the last created object.
         /// \notes If an exception is thrown, the old range has not been modified and all objects created at the new location will be destroyed.
         template <typename T, typename InputIter>
@@ -340,7 +340,20 @@ namespace foonathan
         {
             partially_constructed_range<T> range(block);
             for (auto cur = begin; cur != end; ++cur)
-                range.construct_object(static_cast<T>(*cur));
+                range.construct_object(*cur);
+            return std::move(range).release();
+        }
+
+        /// \effects Moves elements of the given range to the uninitialized memory of the given block, implicitly converting all elements.
+        /// \returns A pointer past the last created object.
+        /// \notes If an exception is thrown, the old range has not been modified and all objects created at the new location will be destroyed.
+        template <typename T, typename InputIter>
+        raw_pointer uninitialized_move_convert(InputIter begin, InputIter end,
+                                               const memory_block& block)
+        {
+            partially_constructed_range<T> range(block);
+            for (auto cur = begin; cur != end; ++cur)
+                range.construct_object(std::move(*cur));
             return std::move(range).release();
         }
 
@@ -356,7 +369,7 @@ namespace foonathan
             destroy_range(begin, end);
             return result;
         }
-    }
-} // namespace foonathan::array
+    } // namespace array
+} // namespace foonathan
 
 #endif // FOONATHAN_ARRAY_RAW_STORAGE_HPP_INCLUDED

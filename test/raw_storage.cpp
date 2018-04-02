@@ -396,12 +396,10 @@ TEST_CASE("uninitialized_copy_convert", "[core]")
     {
         std::uint16_t id;
 
-        test_type(int id) : id(static_cast<std::uint16_t>(id)) {}
-
-        test_type(const test_type& other) : leak_tracked(other), id(other.id)
+        test_type(int id) : id(static_cast<std::uint16_t>(id))
         {
             if (id == 0xFFFF)
-                throw "throwing copy!";
+                throw "throwing ctor!";
         }
     };
 
@@ -428,6 +426,57 @@ TEST_CASE("uninitialized_copy_convert", "[core]")
         array[2] = 0xFFFF;
         REQUIRE_THROWS(
             uninitialized_copy_convert<test_type>(std::begin(array), std::end(array), block));
+    }
+}
+
+TEST_CASE("uninitialized_move_convert", "[core]")
+{
+    leak_checker checker;
+
+    struct test_type : leak_tracked
+    {
+        std::uint16_t id;
+
+        test_type(int id) : id(static_cast<std::uint16_t>(id))
+        {
+            if (id == 0xFFFF)
+                throw "throwing ctor!";
+        }
+    };
+
+    struct test_int
+    {
+        int value;
+
+        operator test_type() &&
+        {
+            return test_type(value);
+        }
+    };
+
+    test_int array[] = {{0xF0F0}, {0xF1F1}, {0xF2F2}, {0xF3F3}};
+
+    std::aligned_storage<4 * sizeof(test_type)>::type storage{};
+    auto block = memory_block(as_raw_pointer(&storage), 4 * sizeof(test_type));
+
+    SECTION("nothrow")
+    {
+        auto end = uninitialized_move_convert<test_type>(std::begin(array), std::end(array), block);
+        REQUIRE(end == as_raw_pointer(&storage) + 4 * sizeof(test_type));
+
+        auto ptr = to_pointer<test_type>(block.begin());
+        REQUIRE(ptr[0].id == 0xF0F0);
+        REQUIRE(ptr[1].id == 0xF1F1);
+        REQUIRE(ptr[2].id == 0xF2F2);
+        REQUIRE(ptr[3].id == 0xF3F3);
+
+        destroy_range(ptr, ptr + 4);
+    }
+    SECTION("throw")
+    {
+        array[2] = {0xFFFF};
+        REQUIRE_THROWS(
+            uninitialized_move_convert<test_type>(std::begin(array), std::end(array), block));
     }
 }
 

@@ -257,46 +257,84 @@ namespace foonathan
             }
         }
 
+        namespace detail
+        {
+            template <class FwdIter, typename T>
+            auto copy_or_move_assign(std::true_type, FwdIter begin, FwdIter end,
+                                     const block_view<T>& dest) -> typename block_view<T>::iterator
+            {
+                return std::move(begin, end, dest.begin());
+            }
+            template <class FwdIter, typename T>
+            auto copy_or_move_assign(std::false_type, FwdIter begin, FwdIter end,
+                                     const block_view<T>& dest) -> typename block_view<T>::iterator
+            {
+                return std::copy(begin, end, dest.begin());
+            }
+
+            template <typename T, class FwdIter>
+            raw_pointer copy_or_move_construct(std::true_type, FwdIter begin, FwdIter end,
+                                               const memory_block& dest)
+            {
+                return uninitialized_move_convert<T>(begin, end, dest);
+            }
+            template <typename T, class FwdIter>
+            raw_pointer copy_or_move_construct(std::false_type, FwdIter begin, FwdIter end,
+                                               const memory_block& dest)
+            {
+                return uninitialized_copy_convert<T>(begin, end, dest);
+            }
+
+            template <bool Move, class BlockStorage, typename T, typename FwdIter>
+            block_view<T> assign_impl(std::integral_constant<bool, Move> move, BlockStorage& dest,
+                                      block_view<T> dest_constructed, FwdIter begin, FwdIter end)
+            {
+                dest_constructed = move_to_front(dest, dest_constructed);
+
+                auto new_size = size_type(std::distance(begin, end)) * sizeof(T);
+                auto cur_size = dest_constructed.size() * sizeof(T);
+                if (new_size <= cur_size)
+                {
+                    auto new_end = copy_or_move_assign(move, begin, end, dest_constructed);
+                    destroy_range(new_end, dest_constructed.end());
+                    return block_view<T>(dest_constructed.begin(), new_end);
+                }
+                else if (new_size <= dest.block().size())
+                {
+                    auto assign_end = std::next(begin, std::ptrdiff_t(dest_constructed.size()));
+                    copy_or_move_assign(move, begin, assign_end, dest_constructed);
+                    auto new_end =
+                        copy_or_move_construct<T>(move, assign_end, end,
+                                                  memory_block(as_raw_pointer(
+                                                                   dest_constructed.data_end()),
+                                                               dest.block().end()));
+                    return block_view<T>(memory_block(dest.block().begin(), new_end));
+                }
+                else
+                {
+                    auto new_begin = clear_and_reserve(dest, dest_constructed, new_size);
+                    auto new_end   = copy_or_move_construct<T>(move, begin, end, dest.block());
+                    return block_view<T>(memory_block(new_begin, new_end));
+                }
+            }
+        } // namespace detail
+
         /// \effects Increases the size of the block owned by `dest` to be as big as needed.
         /// then copy constructs or assigns the objects over.
         /// \returns A view to the objects now constructed in `dest`.
         /// \throws Anything thrown by the allocation or copy constructor/assignment of `T`.
         /// \requires The constructed objects must start at the beginning of the memory.
         template <class BlockStorage, typename T, typename FwdIter>
-        block_view<T> assign(BlockStorage& dest, block_view<T> dest_constructed, FwdIter begin,
-                             FwdIter end)
+        block_view<T> assign_copy(BlockStorage& dest, block_view<T> dest_constructed, FwdIter begin,
+                                  FwdIter end)
         {
-            static_assert(std::is_convertible<typename std::iterator_traits<FwdIter>::value_type,
-                                              T>::value,
-                          "type not convertible");
-
-            dest_constructed = move_to_front(dest, dest_constructed);
-
-            auto new_size = size_type(std::distance(begin, end)) * sizeof(T);
-            auto cur_size = dest_constructed.size() * sizeof(T);
-            if (new_size <= cur_size)
-            {
-                auto new_end = std::copy(begin, end, dest_constructed.begin());
-                destroy_range(new_end, dest_constructed.end());
-                return block_view<T>(dest_constructed.begin(), new_end);
-            }
-            else if (new_size <= dest.block().size())
-            {
-                auto assign_end = std::next(begin, std::ptrdiff_t(dest_constructed.size()));
-                std::copy(begin, assign_end, dest_constructed.begin());
-                auto new_end =
-                    uninitialized_copy_convert<T>(assign_end, end,
-                                                  memory_block(as_raw_pointer(
-                                                                   dest_constructed.data_end()),
-                                                               dest.block().end()));
-                return block_view<T>(memory_block(dest.block().begin(), new_end));
-            }
-            else
-            {
-                auto new_begin = clear_and_reserve(dest, dest_constructed, new_size);
-                auto new_end   = uninitialized_copy_convert<T>(begin, end, dest.block());
-                return block_view<T>(memory_block(new_begin, new_end));
-            }
+            return detail::assign_impl(std::false_type{}, dest, dest_constructed, begin, end);
+        }
+        template <class BlockStorage, typename T, typename FwdIter>
+        block_view<T> assign_move(BlockStorage& dest, block_view<T> dest_constructed, FwdIter begin,
+                                  FwdIter end)
+        {
+            return detail::assign_impl(std::true_type{}, dest, dest_constructed, begin, end);
         }
 
         /// \effects Increases the size of the block to be at least `n`,
@@ -403,7 +441,7 @@ namespace foonathan
 
             // destructor of temp frees previous memory of dest
         }
-    }
-} // namespace foonathan::array
+    } // namespace array
+} // namespace foonathan
 
 #endif // FOONATHAN_ARRAY_BLOCK_STORAGE_ARG_HPP_INCLUDED

@@ -177,6 +177,28 @@ namespace foonathan
             return block_view<T>(array);
         }
 
+        namespace block_traits_detail
+        {
+            template <typename T, typename = void>
+            class default_block_traits
+            {
+            };
+
+            template <typename T>
+            using cv_value_type =
+                typename std::conditional<std::is_const<T>::value, const typename T::value_type,
+                                          typename T::value_type>::type;
+
+            template <typename T>
+            class default_block_traits<T, typename std::enable_if<std::is_convertible<
+                                              T, array::block_view<cv_value_type<T>>>::value>::type>
+            {
+            public:
+                using value_type = cv_value_type<T>;
+                using block_view = array::block_view<cv_value_type<T>>;
+            };
+        } // namespace block_traits_detail
+
         /// Traits for types that are blocks.
         ///
         /// A type is a block if it has a valid specialization and is convertible to an [array::block_view]().
@@ -186,17 +208,8 @@ namespace foonathan
         /// and where `T` is convertible to `block_view<T::value_type>`,
         /// and `const T` convertible to `block_view<const T::value_type>`.
         template <typename T>
-        class block_traits
+        class block_traits : public block_traits_detail::default_block_traits<T>
         {
-            using value_t = typename T::value_type;
-            using cv_value_t =
-                typename std::conditional<std::is_const<T>::value, const value_t, value_t>::type;
-            using convertible = std::is_convertible<T, array::block_view<cv_value_t>>;
-
-        public:
-            using value_type = typename std::enable_if<convertible::value, cv_value_t>::type;
-            using block_view =
-                typename std::enable_if<convertible::value, array::block_view<cv_value_t>>::type;
         };
 
         /// Specialization for arrays.
@@ -232,7 +245,7 @@ namespace foonathan
         template <class Block>
         using block_value_type =
             typename block_traits<typename std::remove_reference<Block>::type>::value_type;
-    }
-} // namespace foonathan::array
+    } // namespace array
+} // namespace foonathan
 
 #endif // FOONATHAN_ARRAY_BLOCK_VIEW_HPP_INCLUDED
