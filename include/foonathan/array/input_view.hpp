@@ -16,6 +16,20 @@ namespace foonathan
         {
         };
 
+        namespace detail
+        {
+            template <class View, class Block, typename = void>
+            struct can_steal_memory : std::false_type
+            {
+            };
+
+            template <class View, class Block>
+            struct can_steal_memory<View, Block, decltype(void(&Block::operator View))>
+            : std::true_type
+            {
+            };
+        } // namespace detail
+
         /// A view that allows stealing memory from another block storage.
         ///
         /// Use this instead of input parameters of your container type.
@@ -30,11 +44,23 @@ namespace foonathan
         {
             static_assert(!std::is_const<T>::value, "T must not be const qualified");
 
+            template <class Block>
+            using can_steal =
+                std::integral_constant<bool,
+                                       !std::is_const<Block>::value
+                                           && detail::can_steal_memory<input_view, Block>::value>;
+
+            template <class Block>
+            using use_block_view = std::integral_constant<
+                bool, !can_steal<Block>::value
+                          && std::is_same<const T, const block_value_type<Block>>::value>;
+
         public:
             using value_type    = T;
             using block_storage = BlockStorage;
 
             /// \effects Creates it giving it a block storage it will steal from.
+            /// It assumes ownership over the storage and the constructed elements.
             /// \requires The block storage must live as least as long as the view.
             /// \notes Use this constructor to implement the implicit conversion to `input_view`.
             input_view(BlockStorage&& storage, block_view<T> constructed) noexcept
@@ -58,9 +84,17 @@ namespace foonathan
             }
 
             /// \effects Creates it from the block, it will copy the elements.
-            template <typename Block, typename = typename std::enable_if<std::is_same<
-                                          const T, const block_value_type<Block>>::value>::type>
+            template <typename Block,
+                      typename = typename std::enable_if<use_block_view<const Block>::value>::type>
             input_view(const Block& input) noexcept : input_view(block_view<const T>(input))
+            {
+            }
+
+            /// \effects Creates it from the block stealing its elements.
+            template <typename Block,
+                      typename = typename std::enable_if<!std::is_reference<Block>::value
+                                                         && can_steal<Block>::value>::type>
+            input_view(Block&& input) noexcept : input_view(std::move(input).operator input_view())
             {
             }
 
@@ -69,6 +103,27 @@ namespace foonathan
             input_view(std::initializer_list<T> input) noexcept
             : input_view(block_view<const T>(input))
             {
+            }
+
+            input_view(input_view&& other) noexcept
+            : storage_ptr_(other.storage_ptr_), constructed_(other.constructed_)
+            {
+                other.storage_ptr_ = nullptr;
+                other.constructed_ = block_view<T>();
+            }
+
+            input_view& operator=(input_view&& other) noexcept
+            {
+                storage_ptr_       = other.storage_ptr_;
+                constructed_       = other.constructed_;
+                other.storage_ptr_ = nullptr;
+                other.constructed_ = block_view<T>();
+            }
+
+            ~input_view() noexcept
+            {
+                if (will_steal_memory())
+                    clear_and_shrink(origin_storage(), constructed_);
             }
 
             /// \returns Whether or not the call to `release()` can steal memory from another storage.

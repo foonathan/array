@@ -20,8 +20,13 @@ namespace foonathan
         /// \throws [std::bad_alloc]() if the allocation fails.
         inline memory_block new_block(size_type size)
         {
-            auto ptr = ::operator new[](size);
-            return {as_raw_pointer(ptr), size};
+            if (size == 0u)
+                return {};
+            else
+            {
+                auto ptr = ::operator new[](size);
+                return {as_raw_pointer(ptr), size};
+            }
         }
 
         /// \effects Deallocates a memory block using `::operator delete[]`.
@@ -79,6 +84,11 @@ namespace foonathan
             }
 
             //=== accessors ===//
+            memory_block empty_block() const noexcept
+            {
+                return {};
+            }
+
             const memory_block& block() const noexcept
             {
                 return block_;
@@ -118,7 +128,7 @@ namespace foonathan
 
             memory_block block_;
         };
-    }
-} // namespace foonathan::array
+    } // namespace array
+} // namespace foonathan
 
 #endif // FOONATHAN_ARRAY_BLOCK_STORAGE_NEW_HPP_INCLUDED

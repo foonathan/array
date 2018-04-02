@@ -101,6 +101,11 @@ namespace foonathan
             }
 
             //=== accessors ===//
+            memory_block empty_block() const noexcept
+            {
+                return block();
+            }
+
             memory_block block() const noexcept
             {
                 return memory_block(as_raw_pointer(&storage_), BufferBytes);
@@ -120,7 +125,7 @@ namespace foonathan
             using storage = typename std::aligned_storage<BufferBytes>::type;
             mutable storage storage_;
         };
-    }
-} // namespace foonathan::array
+    } // namespace array
+} // namespace foonathan
 
 #endif // FOONATHAN_ARRAY_BLOCK_STORAGE_EMBEDDED_HPP_INCLUDED

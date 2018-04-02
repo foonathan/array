@@ -120,6 +120,11 @@ namespace foonathan
             }
 
             //=== accessors ===//
+            memory_block empty_block() const noexcept
+            {
+                return storage_.block();
+            }
+
             const memory_block& block() const noexcept
             {
                 return block_;
@@ -281,7 +286,7 @@ namespace foonathan
             memory_block                             block_; // to avoid branches
             block_storage_embedded<SmallBufferBytes> storage_;
         };
-    }
-} // namespace foonathan::array
+    } // namespace array
+} // namespace foonathan
 
 #endif // FOONATHAN_ARRAY_BLOCK_STORAGE_SBO_HPP_INCLUDED

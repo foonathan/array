@@ -74,6 +74,11 @@ public:
     raw_pointer shrink_to_fit(const block_view<T>& constructed_objects);
 
     //=== accessors ===//
+    /// \returns The memory block it will have in the empty state.
+    /// \notes If `embedded_storage::value == true`, this is the start address of the embedded storage with the embedded size.
+    /// Otherwise it is an empty memory block.
+    memory_block empty_block() const noexcept;
+
     /// \returns The currently allocated memory block.
     memory_block block() const noexcept;
 
