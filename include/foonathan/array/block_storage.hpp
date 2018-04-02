@@ -115,9 +115,7 @@ namespace foonathan
 
             /// \effects Copies the arguments, it must not throw.
             block_storage_args_t(const block_storage_args_t&) noexcept = default;
-
-            /// \notes Arguments don't need to be assignable.
-            block_storage_args_t& operator=(const block_storage_args_t&) = delete;
+            block_storage_args_t& operator=(const block_storage_args_t&) = default;
         };
 
         /// \returns The block storage arguments created by forwarding the given arguments to the tuple.

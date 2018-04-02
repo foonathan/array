@@ -169,6 +169,10 @@ namespace foonathan
                     BlockStorage::swap(dest, dest_constructed, origin_storage(), constructed_);
                     // destroy the elements previously owned by the storage
                     destroy_range(constructed_.begin(), constructed_.end());
+
+                    storage_ptr_ = nullptr;
+                    constructed_ = block_view<T>();
+
                     return dest_constructed;
                 }
                 else if (will_move())
