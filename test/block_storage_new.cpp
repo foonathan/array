@@ -12,7 +12,7 @@ using namespace foonathan::array;
 
 TEST_CASE("block_storage_new", "[BlockStorage]")
 {
-    // TODO: proper test of storage itself
+    // TODO: proper test of block_storage_heap
     REQUIRE(sizeof(block_storage_new<default_growth>) == sizeof(memory_block));
 
     test::test_block_storage_algorithm<block_storage_new<default_growth>>({});

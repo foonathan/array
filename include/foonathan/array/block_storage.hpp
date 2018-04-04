@@ -171,6 +171,10 @@ namespace foonathan
                 {
                     return arguments_;
                 }
+                arg_type& stored_arguments() noexcept
+                {
+                    return arguments_;
+                }
 
             private:
                 arg_type arguments_;

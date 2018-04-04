@@ -19,11 +19,11 @@ struct Heap
 
     /// Allocates a memory block of the given size and alignment or throws an exception if it is unable to do so.
     /// Doesn't need to handle size `0`.
-    static memory_block allocate(const handle_type& handle, size_type size, size_type alignment);
+    static memory_block allocate(handle_type& handle, size_type size, size_type alignment);
 
     /// Deallocates a memory block.
     /// Doesn't need to handle empty blocks.
-    static void deallocate(const handle_type& handle, memory_block&& block) noexcept;
+    static void deallocate(handle_type& handle, memory_block&& block) noexcept;
 };
 #endif
 
@@ -106,15 +106,11 @@ namespace foonathan
             }
 
         private:
-            typename Heap::handle_type handle() const noexcept
+            void deallocate_block(memory_block&& block) noexcept
             {
-                return std::get<0>(arguments().args);
-            }
-
-            void deallocate_block(memory_block&& block) const noexcept
-            {
+                auto&& handle = std::get<0>(this->stored_arguments().args);
                 if (!block.empty())
-                    Heap::deallocate(handle(), std::move(block));
+                    Heap::deallocate(handle, std::move(block));
             }
 
             memory_block allocate_block(size_type size, size_type alignment)
@@ -122,7 +118,10 @@ namespace foonathan
                 if (size == 0)
                     return memory_block();
                 else
-                    return Heap::allocate(handle(), size, alignment);
+                {
+                    auto&& handle = std::get<0>(this->stored_arguments().args);
+                    return Heap::allocate(handle, size, alignment);
+                }
             }
 
             template <typename T>

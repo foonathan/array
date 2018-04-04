@@ -20,13 +20,13 @@ namespace foonathan
             {
             };
 
-            static memory_block allocate(const handle_type&, size_type size, size_type)
+            static memory_block allocate(handle_type&, size_type size, size_type)
             {
                 auto ptr = ::operator new[](size);
                 return {as_raw_pointer(ptr), size};
             }
 
-            static void deallocate(const handle_type&, memory_block&& block) noexcept
+            static void deallocate(handle_type&, memory_block&& block) noexcept
             {
                 ::operator delete[](to_void_pointer(block.begin()));
             }

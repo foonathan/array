@@ -7,105 +7,40 @@
 
 #include <memory>
 
-#include <foonathan/array/block_storage.hpp>
-#include <foonathan/array/growth_policy.hpp>
+#include <foonathan/array/block_storage_heap.hpp>
 
 namespace foonathan
 {
     namespace array
     {
-        /// A `BlockStorage` that uses an `Allocator` for allocation.
+        /// A `Heap` that uses the given `Allocator` for allocation.
         ///
-        /// It will rebind the `Allocator` to `std::byte` and basically ignore all functions except the `allocate()` and `deallocate()`.
-        template <class Allocator, class GrowthPolicy>
-        class block_storage_allocator : Allocator
+        /// The allocator will be rebound to [array::byte]().
+        /// Only `allocate()` and `deallocate()` will be called, all other functions ignored.
+        ///
+        /// \note As the arguments of a `BlockStorage` will always propagate, so will the allocator,
+        /// regardless of the `propagate_XXX` settings.
+        template <class Allocator>
+        struct allocator_heap
         {
-        public:
-            using embedded_storage = std::false_type;
-            using arg_type         = block_storage_args_t<Allocator>;
+            using handle_type =
+                typename std::allocator_traits<Allocator>::template rebind_alloc<byte>;
 
-            //=== constructors/destructors ===//
-            explicit block_storage_allocator(arg_type) noexcept {}
-
-            ~block_storage_new() noexcept
+            static memory_block allocate(handle_type& handle, size_type size, size_type)
             {
-                delete_block(std::move(block_));
+                auto ptr = std::allocator_traits<handle_type>::allocate(handle, size);
+                return memory_block(ptr, size);
             }
 
-            block_storage_allocator(const block_storage_allocator&) = delete;
-            block_storage_allocator& operator=(const block_storage_allocator&) = delete;
-
-            template <typename T>
-            static void swap(block_storage_allocator& lhs, block_view<T>& lhs_constructed,
-                             block_storage_allocator& rhs, block_view<T>& rhs_constructed) noexcept
+            static void deallocate(handle_type& handle, memory_block&& block) noexcept
             {
-                std::swap(lhs.block_, rhs.block_);
-                std::swap(lhs_constructed, rhs_constructed);
+                std::allocator_traits<handle_type>::deallocate(handle, block.begin(), block.size());
             }
-
-            //=== reserve/shrink_to_fit ===//
-            template <typename T>
-            raw_pointer reserve(size_type min_additional_bytes, const block_view<T>& constructed)
-            {
-                auto new_size  = GrowthPolicy::growth_size(block_.size(), min_additional_bytes);
-                auto new_block = array::new_block(new_size);
-                return change_block(constructed, std::move(new_block));
-            }
-
-            template <typename T>
-            raw_pointer shrink_to_fit(const block_view<T>& constructed)
-            {
-                auto byte_size = constructed.size() * sizeof(T);
-                auto new_size  = GrowthPolicy::shrink_size(block_.size(), byte_size);
-                auto new_block = array::new_block(new_size);
-                return change_block(constructed, std::move(new_block));
-            }
-
-            //=== accessors ===//
-            memory_block empty_block() const noexcept
-            {
-                return {};
-            }
-
-            const memory_block& block() const noexcept
-            {
-                return block_;
-            }
-
-            arg_type arguments() const noexcept
-            {
-                return {};
-            }
-
-            static size_type max_size() noexcept
-            {
-                return memory_block::max_size();
-            }
-
-        private:
-            template <typename T>
-            raw_pointer change_block(const block_view<T>& constructed, memory_block&& new_block)
-            {
-                raw_pointer end;
-                try
-                {
-                    end = uninitialized_destructive_move(constructed.begin(), constructed.end(),
-                                                         new_block);
-                }
-                catch (...)
-                {
-                    delete_block(std::move(new_block));
-                    throw;
-                }
-
-                delete_block(std::move(block_));
-                block_ = new_block;
-
-                return end;
-            }
-
-            memory_block block_;
         };
+
+        /// A `BlockStorage` that uses an [array::allocator_heap]() for allocation.
+        template <class Allocator, class GrowthPolicy>
+        using block_storage_allocator = block_storage_heap<allocator_heap<Allocator>, GrowthPolicy>;
     } // namespace array
 } // namespace foonathan
 
