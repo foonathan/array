@@ -87,7 +87,7 @@ public:
 
     /// \returns The maximum size of a memory block managed by this storage,
     /// or `memory_block::max_size()` if there is no limitation by the storage itself.
-    static size_type max_size() noexcept;
+    static size_type max_size(const arg_type& args) noexcept;
 };
 
 #endif

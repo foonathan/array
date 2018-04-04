@@ -30,6 +30,11 @@ namespace foonathan
             {
                 ::operator delete[](to_void_pointer(block.begin()));
             }
+
+            static size_type max_size(const handle_type&) noexcept
+            {
+                return memory_block::max_size();
+            }
         };
 
         /// A `BlockStorage` that uses `operator new` for memory allocations.

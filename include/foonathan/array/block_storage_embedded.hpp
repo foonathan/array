@@ -86,7 +86,7 @@ namespace foonathan
 
                 // check for overflow
                 auto new_size = constructed.size() * sizeof(T) + min_additional_bytes;
-                if (new_size <= max_size())
+                if (new_size <= BufferBytes)
                     return new_end;
                 else
                     throw embedded_storage_overflow();
@@ -116,7 +116,7 @@ namespace foonathan
                 return {};
             }
 
-            static size_type max_size() noexcept
+            static size_type max_size(const arg_type&) noexcept
             {
                 return BufferBytes;
             }

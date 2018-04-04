@@ -28,6 +28,7 @@ namespace
         REQUIRE(bag.empty() == (bag.size() == 0u));
         REQUIRE(bag.size() == ids.end() - ids.begin());
         REQUIRE(bag.capacity() >= bag.size());
+        REQUIRE(bag.capacity() <= bag.max_size());
 
         auto view = block_view<const test_type>(bag);
         REQUIRE(view.size() == bag.size());

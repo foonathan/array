@@ -135,9 +135,9 @@ namespace foonathan
                 return this->stored_arguments();
             }
 
-            static size_type max_size() noexcept
+            static size_type max_size(const arg_type& args) noexcept
             {
-                return BigBlockStorage::max_size();
+                return BigBlockStorage::max_size(args);
             }
 
         private:

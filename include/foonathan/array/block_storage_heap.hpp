@@ -24,6 +24,9 @@ struct Heap
     /// Deallocates a memory block.
     /// Doesn't need to handle empty blocks.
     static void deallocate(handle_type& handle, memory_block&& block) noexcept;
+
+    /// Returns the maximum size of a memory block, or [array::memory_block::max_size()]() if it isn't limited by the allocator.
+    static size_type max_size(const handle_type& handle) noexcept;
 };
 #endif
 
@@ -100,9 +103,10 @@ namespace foonathan
                 return this->stored_arguments();
             }
 
-            static size_type max_size() noexcept
+            static size_type max_size(const arg_type& args) noexcept
             {
-                return memory_block::max_size();
+                auto&& handle = std::get<0>(args.args);
+                return Heap::max_size(handle);
             }
 
         private:

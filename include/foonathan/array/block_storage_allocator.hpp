@@ -36,6 +36,11 @@ namespace foonathan
             {
                 std::allocator_traits<handle_type>::deallocate(handle, block.begin(), block.size());
             }
+
+            static size_type max_size(const handle_type& handle) noexcept
+            {
+                return std::allocator_traits<handle_type>::max_size(handle);
+            }
         };
 
         /// A `BlockStorage` that uses an [array::allocator_heap]() for allocation.
