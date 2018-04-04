@@ -73,7 +73,8 @@ namespace foonathan
             template <typename T>
             raw_pointer reserve(size_type min_additional_bytes, const block_view<T>& constructed)
             {
-                auto new_size  = GrowthPolicy::growth_size(block_.size(), min_additional_bytes);
+                auto new_size  = GrowthPolicy::growth_size(block_.size(), min_additional_bytes,
+                                                          max_size(arguments()));
                 auto new_block = allocate_block(new_size, alignof(T));
                 return change_block(constructed, std::move(new_block));
             }

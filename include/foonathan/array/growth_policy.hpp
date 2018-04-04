@@ -18,17 +18,20 @@ namespace foonathan
         struct no_extra_growth
         {
             /// \returns The new size of the block, that is `cur_size + additional_needed`.
-            static constexpr size_type growth_size(size_type cur_size,
-                                                   size_type additional_needed) noexcept
+            static size_type growth_size(size_type cur_size, size_type additional_needed,
+                                         size_type max_size) noexcept
             {
+                (void)max_size;
                 return cur_size + additional_needed;
             }
 
             /// \returns `size_needed`, i.e. shrink to the minimum.
-            static constexpr size_type shrink_size(size_type cur_size,
-                                                   size_type size_needed) noexcept
+            static size_type shrink_size(size_type cur_size, size_type size_needed,
+                                         size_type max_size) noexcept
             {
-                return (void)cur_size, size_needed;
+                (void)cur_size;
+                (void)max_size;
+                return size_needed;
             }
         };
 
@@ -110,8 +113,10 @@ namespace foonathan
         public:
             /// \returns The current size multiplied by the growth factor,
             /// or the current size plus the additional one, whatever is larger.
-            static size_type growth_size(size_type cur_size, size_type additional_needed) noexcept
+            static size_type growth_size(size_type cur_size, size_type additional_needed,
+                                         size_type max_size) noexcept
             {
+                (void)max_size;
                 auto needed          = cur_size + additional_needed;
                 auto factored_growth = growth::grow(cur_size);
                 return factored_growth > needed ? factored_growth : needed;
