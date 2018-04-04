@@ -10,6 +10,7 @@ set(header_files
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/block_storage_allocator.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/block_storage_embedded.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/block_storage_heap.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/block_storage_heap_sbo.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/block_storage_new.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/block_storage_sbo.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/block_view.hpp
