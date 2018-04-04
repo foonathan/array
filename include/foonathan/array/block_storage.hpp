@@ -136,50 +136,77 @@ namespace foonathan
         }
 
         //=== block_storage_args_storage ===//
-        /// EBO optimized storage for [array::block_storage_args_t]().
-        template <typename Args>
-        class block_storage_args_storage;
-
-        template <>
-        class block_storage_args_storage<block_storage_args_t<>>
+        namespace detail
         {
-        public:
-            using arg_type = block_storage_args_t<>;
-
-            explicit block_storage_args_storage(const arg_type&) noexcept {}
-
-            void set_stored_arguments(const arg_type&) noexcept {}
-
-            arg_type stored_arguments() const noexcept
+            template <bool... Bools>
+            struct bool_list
             {
-                return {};
-            }
-        };
+            };
 
-        template <typename... Args>
-        class block_storage_args_storage<block_storage_args_t<Args...>>
-        {
-        public:
-            using arg_type = block_storage_args_t<Args...>;
+            template <bool... Bools>
+            using all_true = std::is_same<bool_list<true, Bools...>, bool_list<Bools..., true>>;
 
-            explicit block_storage_args_storage(arg_type arguments) noexcept
-            : arguments_(std::move(arguments))
+            template <typename... Args>
+            using all_empty = all_true<std::is_empty<Args>::value...>;
+
+            template <bool B, typename... Args>
+            class arg_storage_impl
             {
-            }
+                static_assert(sizeof...(Args) > 0u, "no arguments should mean that all are empty");
 
-            void set_stored_arguments(arg_type arguments) noexcept
+            public:
+                using arg_type = block_storage_args_t<Args...>;
+
+                explicit arg_storage_impl(arg_type arguments) noexcept
+                : arguments_(std::move(arguments))
+                {
+                }
+
+                void set_stored_arguments(arg_type arguments) noexcept
+                {
+                    arguments_ = std::move(arguments);
+                }
+
+                const arg_type& stored_arguments() const noexcept
+                {
+                    return arguments_;
+                }
+
+            private:
+                arg_type arguments_;
+            };
+
+            template <typename... Args>
+            class arg_storage_impl<true, Args...>
             {
-                arguments_ = std::move(arguments);
-            }
+            public:
+                using arg_type = block_storage_args_t<Args...>;
 
-            const arg_type& stored_arguments() const noexcept
+                explicit arg_storage_impl(const arg_type&) noexcept {}
+
+                void set_stored_arguments(const arg_type&) noexcept {}
+
+                arg_type stored_arguments() const noexcept
+                {
+                    return {};
+                }
+            };
+
+            template <class Args>
+            struct arg_storage;
+
+            template <typename... Args>
+            struct arg_storage<block_storage_args_t<Args...>>
             {
-                return arguments_;
-            }
+                using type = arg_storage_impl<all_empty<Args...>::value, Args...>;
+            };
+        } // namespace detail
 
-        private:
-            arg_type arguments_;
-        };
+        /// Optimized storage for [array::block_storage_args_t]().
+        ///
+        /// It is intended as a base class for EBO, only stores arguments if not all argument types are empty.
+        template <class Args>
+        using block_storage_args_storage = typename detail::arg_storage<Args>::type;
 
         //=== BlockStorage algorithms ===//
         /// `std::true_type` if move operations of a `BlockStorage` will never throw, `std::false_type` otherwise.
