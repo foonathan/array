@@ -95,7 +95,7 @@ namespace foonathan
             // clang-format off
             using select_growth =
                 typename std::conditional<GrowthNumerator % GrowthDenominator == 0,
-                                              whole_growth<GrowthNumerator>, // whole number
+                                              whole_growth<GrowthNumerator / GrowthDenominator>, // whole number
                 typename std::conditional<GrowthDenominator == 2,
                                               uneven_halfs_growth<GrowthNumerator>, // n / 2
                                         // else:

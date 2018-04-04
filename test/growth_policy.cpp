@@ -29,7 +29,7 @@ TEST_CASE("factor_growth", "[GrowthPolicy]")
     REQUIRE(factor1dot5::shrink_size(4u, 2u) == 2u);
     REQUIRE(factor1dot5::shrink_size(8u, 8u) == 8u);
 
-    using factor2 = factor_growth<2>;
+    using factor2 = factor_growth<4, 2>;
 
     REQUIRE(factor2::growth_size(0u, 4u, memory_block::max_size()) == 4u);
     REQUIRE(factor2::growth_size(4u, 1u, memory_block::max_size()) == 8u);
