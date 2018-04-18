@@ -25,7 +25,7 @@ TEST_CASE("input_view", "[view]")
 
             test_type(int i) : id(static_cast<std::uint16_t>(i)) {}
 
-            test_type(const test_type&)
+            test_type(const test_type&) : leak_tracked()
             {
                 FAIL("shouldn't have been called");
             }

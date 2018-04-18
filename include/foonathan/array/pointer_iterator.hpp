@@ -59,7 +59,7 @@ namespace foonathan
                 ++ptr_;
                 return *this;
             }
-            FOONATHAN_ARRAY_CONSTEXPR14 pointer_iterator operator++(int)noexcept
+            FOONATHAN_ARRAY_CONSTEXPR14 pointer_iterator operator++(int) noexcept
             {
                 auto save = *this;
                 ++ptr_;
@@ -71,7 +71,7 @@ namespace foonathan
                 --ptr_;
                 return *this;
             }
-            FOONATHAN_ARRAY_CONSTEXPR14 pointer_iterator operator--(int)noexcept
+            FOONATHAN_ARRAY_CONSTEXPR14 pointer_iterator operator--(int) noexcept
             {
                 auto save = *this;
                 --ptr_;
@@ -147,9 +147,12 @@ namespace foonathan
             }
 
         private:
-            pointer_iterator(pointer ptr) : ptr_(ptr) {}
+            explicit pointer_iterator(pointer ptr) : ptr_(ptr) {}
 
             T* ptr_;
+
+            template <typename U>
+            friend struct is_contiguous_iterator;
         };
 
         template <typename Tag, typename T>
@@ -159,8 +162,13 @@ namespace foonathan
             {
                 return iterator.operator->();
             }
+
+            static constexpr pointer_iterator<Tag, T> to_iterator(T* pointer) noexcept
+            {
+                return pointer_iterator<Tag, T>(pointer);
+            }
         };
-    }
-} // namespace foonathan::array
+    } // namespace array
+} // namespace foonathan
 
 #endif // FOONATHAN_ARRAY_POINTER_ITERATOR_HPP_INCLUDED

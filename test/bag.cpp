@@ -103,7 +103,7 @@ TEST_CASE("bag", "[container]")
         verify_bag(bag, {0xF0F0, 0xF1F1, 0xF2F2});
 
         test_type tests[] = {{0xF3F3}, {0xF4F4}, {0xF5F5}};
-        bag.insert_block(tests);
+        bag.insert(tests);
         verify_bag(bag, {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3, 0xF4F4, 0xF5F5});
 
         bag.insert_range(std::begin(tests), std::end(tests));

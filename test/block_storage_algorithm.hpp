@@ -52,7 +52,6 @@ namespace test
         };
 
         BlockStorage storage(arguments);
-        auto         empty_size = storage.block().size();
 
         auto size = 4u * sizeof(test_type);
         storage.reserve(size, block_view<test_type>(empty, storage.block().begin()));

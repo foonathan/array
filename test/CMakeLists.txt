@@ -19,6 +19,7 @@ if(NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/catch.hpp)
 endif()
 
 set(tests
+    array.cpp
     array_view.cpp
     block_storage.cpp
     block_storage_algorithm.hpp
