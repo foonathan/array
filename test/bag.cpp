@@ -8,6 +8,7 @@
 
 #include <foonathan/array/block_storage_new.hpp>
 
+#include "equal_checker.hpp"
 #include "leak_checker.hpp"
 
 using namespace foonathan::array;
@@ -36,14 +37,9 @@ namespace
         REQUIRE(view.data_end() == iterator_to_pointer(bag.end()));
         REQUIRE(view.data() == iterator_to_pointer(bag.cbegin()));
         REQUIRE(view.data_end() == iterator_to_pointer(bag.cend()));
-
-        if (!std::equal(view.begin(), view.end(), ids.begin(),
-                        [](const test_type& test, int i) { return test.id == i; }))
-        {
-            for (auto el : view)
-                FAIL_CHECK(std::hex << el.id);
-            FAIL("not expected elements");
-        }
+        check_equal(view.begin(), view.end(), ids.begin(), ids.end(),
+                    [](const test_type& test, int i) { return test.id == i; },
+                    [&](const test_type& test) { FAIL_CHECK(std::hex << test.id); });
     }
 
     void verify_bag(const test_bag& bag, std::initializer_list<int> ids)

@@ -34,7 +34,7 @@ set(tests
     memory_block.cpp
     pointer_iterator.cpp
     raw_storage.cpp
-    bag.cpp block_storage_allocator.cpp)
+    bag.cpp block_storage_allocator.cpp equal_checker.hpp)
 
 add_executable(foonathan_array_test
                 test.cpp

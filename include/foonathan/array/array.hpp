@@ -320,7 +320,8 @@ namespace foonathan
             template <typename InputIt>
             iterator insert_range(const_iterator pos, InputIt begin, InputIt end)
             {
-                return insert_range_impl(typename std::iterator_traits<
+                return insert_range_impl(pos,
+                                         typename std::iterator_traits<
                                              InputIt>::iterator_category{},
                                          begin, end);
             }
@@ -367,7 +368,7 @@ namespace foonathan
                 // destroy the elements at the end
                 auto n = mut_end - mut_begin;
                 destroy_range(std::prev(view().data_end(), n), view().data_end());
-                end_ -= n * sizeof(T);
+                end_ -= std::size_t(n) * sizeof(T);
 
                 // next element after is still the first location of the range
                 return iterator(iterator_tag{}, mut_begin);
