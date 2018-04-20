@@ -17,7 +17,7 @@ namespace foonathan
         /// Insert and erase are (amortized) O(1), but the order of elements is not determined.
         ///
         /// It is implemented as a tiny wrapper over [array::array<T>]().
-        template <typename T, class BlockStorage>
+        template <typename T, class BlockStorage = block_storage_default>
         class bag
         {
             class iterator_tag

@@ -14,7 +14,7 @@ namespace foonathan
     {
         /// A `BlockStorage` that has a small buffer of the given size it uses for small allocations,
         /// then uses the `Heap` for dynamic allocations growing with the specified `GrowthPolicy`.
-        template <std::size_t SmallBufferBytes, class Heap, class GrowthPolicy>
+        template <std::size_t SmallBufferBytes, class Heap, class GrowthPolicy = default_growth>
         using block_storage_heap_sbo =
             block_storage_sbo<SmallBufferBytes, block_storage_heap<Heap, GrowthPolicy>>;
     } // namespace array

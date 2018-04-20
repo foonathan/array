@@ -6,6 +6,7 @@
 #define FOONATHAN_ARRAY_ARRAY_HPP_INCLUDED
 
 #include <foonathan/array/block_storage.hpp>
+#include <foonathan/array/block_storage_new.hpp>
 #include <foonathan/array/array_view.hpp>
 #include <foonathan/array/input_view.hpp>
 #include <foonathan/array/pointer_iterator.hpp>
@@ -19,7 +20,7 @@ namespace foonathan
         /// This is the `[std::vector]()` implementation, but uses a `BlockStorage`.
         /// \notes It has slight interface differences (improvements),
         /// so is not a drop-in replacement for `std::vector`.
-        template <typename T, class BlockStorage>
+        template <typename T, class BlockStorage = block_storage_default>
         class array
         {
         public:
