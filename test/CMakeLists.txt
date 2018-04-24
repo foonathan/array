@@ -29,8 +29,10 @@ set(tests
     block_view.cpp
     byte_view.cpp
     contiguous_iterator.cpp
+    flat_set.cpp
     growth_policy.cpp
     input_view.cpp
+    key_compare.cpp
     memory_block.cpp
     pointer_iterator.cpp
     raw_storage.cpp

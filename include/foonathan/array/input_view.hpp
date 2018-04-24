@@ -154,6 +154,26 @@ namespace foonathan
                 return *static_cast<BlockStorage*>(storage_ptr_);
             }
 
+            /// \returns The number of elements in the block.
+            size_type size() const noexcept
+            {
+                return constructed_.size();
+            }
+
+            /// \returns A view to the elements in the block.
+            block_view<const T> view() const noexcept
+            {
+                return constructed_;
+            }
+
+            /// \returns A non-const view to the elements in the block.
+            /// \requires `will_move() == true`.
+            block_view<T> mutable_view() const noexcept
+            {
+                assert(will_move());
+                return constructed_;
+            }
+
             /// \effects If `can_steal_memory() == true`, transfers ownership of the memory and constructed objects to `dest`.
             /// Otherwise, allocates new memory and copy/moves the objects over.
             /// \returns A view on the now constructed objects in `dest`.

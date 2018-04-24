@@ -43,6 +43,8 @@ TEST_CASE("input_view", "[view]")
         REQUIRE(!v.will_move());
         REQUIRE(!v.will_copy());
 
+        REQUIRE(v.size() == 4u);
+
         block_storage new_storage({});
         auto          new_constructed = [&] {
             int ids[] = {0xE0E0, 0xE1E1};
@@ -79,6 +81,9 @@ TEST_CASE("input_view", "[view]")
         REQUIRE(!v.will_move());
         REQUIRE(v.will_copy());
 
+        REQUIRE(v.size() == 4u);
+        REQUIRE(v.view().data() == block);
+
         block_storage new_storage({});
         auto          new_constructed = [&] {
             int ids[] = {0xE0E0, 0xE1E1};
@@ -114,6 +119,9 @@ TEST_CASE("input_view", "[view]")
         REQUIRE(!v.will_steal_memory());
         REQUIRE(v.will_move());
         REQUIRE(!v.will_copy());
+
+        REQUIRE(v.size() == 4u);
+        REQUIRE(v.mutable_view().data() == block);
 
         block_storage new_storage({});
         auto          new_constructed = [&] {

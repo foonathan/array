@@ -6,8 +6,6 @@
 
 #include <catch.hpp>
 
-#include <foonathan/array/block_storage_new.hpp>
-
 #include "equal_checker.hpp"
 #include "leak_checker.hpp"
 
@@ -22,7 +20,7 @@ namespace
         test_type(int i) : id(static_cast<std::uint16_t>(i)) {}
     };
 
-    using test_bag = bag<test_type, block_storage_new<default_growth>>;
+    using test_bag = bag<test_type>;
 
     void verify_bag_impl(const test_bag& bag, std::initializer_list<int> ids)
     {
