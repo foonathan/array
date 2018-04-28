@@ -14,12 +14,12 @@ namespace foonathan
     {
         /// A sorted set of elements.
         ///
-        /// It is similar to [std::set]() or [std::multiset]() — depending on `Compare::allow_duplicates`,
+        /// It is similar to [std::set]() or [std::multiset]() — depending on `AllowDuplicates`,
         /// but uses a sorted [array::array]() with the given `BlockStorage` internally.
         ///
         /// `Compare` must be a `KeyCompare` type, not something like [std::less]().
-        template <typename Key, typename Compare = key_compare_default<Key, false>,
-                  class BlockStorage = block_storage_default>
+        template <typename Key, typename Compare = key_compare_default<Key>,
+                  class BlockStorage = block_storage_default, bool AllowDuplicates = false>
         class flat_set
         {
             class iterator_tag
@@ -39,6 +39,8 @@ namespace foonathan
 
             using key_compare   = Compare;
             using value_compare = key_compare;
+
+            using is_multiset = std::integral_constant<bool, AllowDuplicates>;
 
             using block_storage = BlockStorage;
 
@@ -183,7 +185,7 @@ namespace foonathan
                 /// Otherwise it is only true if the set allows duplicates.
                 bool was_inserted() const noexcept
                 {
-                    return !was_duplicate_ || typename Compare::allow_duplicates{};
+                    return !was_duplicate_ || AllowDuplicates;
                 }
 
             private:
@@ -204,7 +206,7 @@ namespace foonathan
             insert_result try_emplace(const TransparentKey& key, Args&&... args)
             {
                 auto range = equal_range(key);
-                if (typename Compare::allow_duplicates{} || range.empty())
+                if (AllowDuplicates || range.empty())
                 {
                     // we either don't care about duplicates or the key is not in the map
                     auto iter =
@@ -280,14 +282,13 @@ namespace foonathan
             template <typename TransparentKey, typename = enable_transparent_key<TransparentKey>>
             auto erase_all(const TransparentKey& key) noexcept(
                 std::is_nothrow_move_assignable<Key>::value) ->
-                typename std::conditional<typename Compare::allow_duplicates{}, size_type,
-                                          bool>::type
+                typename std::conditional<AllowDuplicates, size_type, bool>::type
             {
                 auto range = equal_range(key);
 
-                using result_type = typename std::conditional<typename Compare::allow_duplicates{},
-                                                              size_type, bool>::type;
-                auto count        = result_type(range.end() - range.begin());
+                using result_type =
+                    typename std::conditional<AllowDuplicates, size_type, bool>::type;
+                auto count = result_type(range.end() - range.begin());
 
                 erase_range(range.begin(), range.end());
 
@@ -300,6 +301,7 @@ namespace foonathan
                 if (input.will_steal_memory())
                 {
                     // steal memory, then sort + unique is probably going to be faster
+                    // than the individual insert done below
 
                     array_.assign(std::move(input));
 
@@ -307,12 +309,15 @@ namespace foonathan
                         return Compare::compare(lhs, rhs) == key_ordering::less;
                     });
 
-                    auto new_end = std::unique(array_.begin(), array_.end(),
-                                               [&](const Key& lhs, const Key& rhs) {
-                                                   return Compare::compare(lhs, rhs)
-                                                          == key_ordering::equivalent;
-                                               });
-                    array_.erase_range(new_end, array_.end());
+                    if (!AllowDuplicates)
+                    {
+                        auto new_end = std::unique(array_.begin(), array_.end(),
+                                                   [&](const Key& lhs, const Key& rhs) {
+                                                       return Compare::compare(lhs, rhs)
+                                                              == key_ordering::equivalent;
+                                                   });
+                        array_.erase_range(new_end, array_.end());
+                    }
                 }
                 else
                 {
@@ -425,6 +430,11 @@ namespace foonathan
 
             array<Key, BlockStorage> array_;
         };
+
+        /// Convenience typedef for an [array::flat_set]() that allows duplicates.
+        template <typename Key, typename Compare = key_compare_default<Key>,
+                  class BlockStorage = block_storage_default>
+        using flat_multiset = flat_set<Key, Compare, BlockStorage, true>;
     } // namespace array
 } // namespace foonathan
 

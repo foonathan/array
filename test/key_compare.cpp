@@ -56,7 +56,7 @@ TEST_CASE("lower_bound/upper_bound/equal_range", "[util]")
 {
     SECTION("key_compare_default")
     {
-        using compare = key_compare_default<int, true>;
+        using compare = key_compare_default<int>;
 
         std::vector<int> vec = {1, 2, 3, 5, 5, 5, 6, 7, 8};
 

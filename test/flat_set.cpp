@@ -35,9 +35,11 @@ namespace
         }
     };
 
-    using test_set = flat_set<test_type>;
+    using test_set      = flat_set<test_type>;
+    using test_multiset = flat_multiset<test_type>;
 
-    void verify_set_impl(const test_set& set, std::initializer_list<int> ids)
+    template <class Set>
+    void verify_set_impl(const Set& set, std::initializer_list<int> ids)
     {
         REQUIRE(set.empty() == (set.size() == 0u));
         REQUIRE(set.size() == ids.end() - ids.begin());
@@ -61,30 +63,35 @@ namespace
         }
 
         auto cur_index = 0u;
+        auto last_id   = -1;
         for (auto& id : ids)
         {
+            if (last_id != -1 && last_id != id)
+                cur_index += set.count(last_id);
+
             REQUIRE(set.contains(id));
 
             REQUIRE(set.find(id) - set.begin() == cur_index);
 
             REQUIRE(set.lower_bound(id) - set.begin() == cur_index);
             INFO(set.size());
-            REQUIRE(set.upper_bound(id) - set.begin() == cur_index + 1);
+            REQUIRE(set.upper_bound(id) - set.begin() == cur_index + set.count(id));
 
             auto range = set.equal_range(id);
             REQUIRE(range.begin() - set.begin() == cur_index);
-            REQUIRE(std::next(range.begin()) == range.end());
+            REQUIRE(std::next(range.begin(), std::ptrdiff_t(set.count(id))) == range.end());
 
-            ++cur_index;
+            last_id = id;
         }
     }
 
-    void verify_set(const test_set& set, std::initializer_list<int> ids)
+    template <class Set>
+    void verify_set(const Set& set, std::initializer_list<int> ids)
     {
         verify_set_impl(set, ids);
 
         // copy constructor
-        test_set copy(set);
+        Set copy(set);
         verify_set_impl(copy, ids);
         REQUIRE(copy.capacity() <= set.capacity());
 
@@ -128,6 +135,15 @@ namespace
             REQUIRE(result.was_inserted());
             REQUIRE(!result.was_duplicate());
         }
+
+        REQUIRE(result.iter()->id == id);
+        REQUIRE(std::size_t(result.iter() - set.begin()) == pos);
+    }
+    void verify_result(const test_multiset& set, test_multiset::insert_result result, int id,
+                       std::size_t pos, bool duplicate = false)
+    {
+        REQUIRE(result.was_inserted());
+        REQUIRE(result.was_duplicate() == duplicate);
 
         REQUIRE(result.iter()->id == id);
         REQUIRE(std::size_t(result.iter() - set.begin()) == pos);
@@ -280,4 +296,22 @@ TEST_CASE("flat_set", "[container]")
                       test_type(0xF0F0)}};
         verify_set(set, {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3});
     }
+}
+
+TEST_CASE("flat_multiset", "[container]")
+{
+    // only check duplicate stuff
+
+    leak_checker checker;
+
+    test_multiset set{{test_type(0xF0F0), test_type(0xF1F1), test_type(0xF2F2), test_type(0xF0F0)}};
+    verify_set(set, {0xF0F0, 0xF0F0, 0xF1F1, 0xF2F2});
+
+    auto result = set.emplace(0xF3F3);
+    verify_set(set, {0xF0F0, 0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3});
+    verify_result(set, result, 0xF3F3, 4);
+
+    result = set.emplace(0xF1F1);
+    verify_set(set, {0xF0F0, 0xF0F0, 0xF1F1, 0xF1F1, 0xF2F2, 0xF3F3});
+    verify_result(set, result, 0xF1F1, 3, true);
 }

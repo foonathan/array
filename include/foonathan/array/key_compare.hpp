@@ -13,9 +13,6 @@
 template <typename Key>
 struct KeyCompare
 {
-    /// Whether or not duplicates are allowed.
-    using allow_duplicates = std::integral_constant<bool, true / false>;
-
     /// Compares the key with some other type.
     ///
     /// It must define a strict total ordering of the keys.
@@ -107,13 +104,9 @@ namespace foonathan
         ///
         /// If `Key` is a pointer the comparison will be done using [std::less]().
         /// Otherwise, it will first try `k.compare(t)`, then `t.compare(k)` and then `k < t`.
-        ///
-        /// It may or may not allow duplicates depending on the parameter.
-        template <typename Key, bool AllowDuplicates>
+        template <typename Key>
         struct key_compare_default
         {
-            using allow_duplicates = std::integral_constant<bool, AllowDuplicates>;
-
             template <typename T>
             static auto compare(const Key& k, const T& t) noexcept
                 -> decltype(comp_detail::compare_impl(comp_detail::pointer{}, k, t))
