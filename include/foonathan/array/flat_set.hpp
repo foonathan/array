@@ -29,9 +29,7 @@ namespace foonathan
                 friend flat_set;
             };
 
-            template <typename KeyLike>
-            using enable_transparent_key =
-                decltype(Compare::compare(std::declval<Key>(), std::declval<KeyLike>()));
+            // TODO: exception safety when sort throws
 
         public:
             using key_type   = Key;
@@ -154,7 +152,7 @@ namespace foonathan
             /// \effects Reserves new memory to make capacity as least as big as `new_capacity` if that isn't the case already.
             void reserve(size_type new_capacity)
             {
-                return array_.reserve(new_capacity);
+                array_.reserve(new_capacity);
             }
 
             /// \effects Non-binding request to make the capacity as small as necessary.
@@ -198,19 +196,18 @@ namespace foonathan
             };
 
             /// \effects Does a lookup for the given key.
-            /// If the key isn't part of the set or the set allows duplicates, inserts a key constructed from the arguments.
+            /// If the key isn't part of the set or the set allows duplicates, inserts a key constructed from the transparent key.
             /// Otherwise, does nothing.
             /// \returns The result of the insert operation.
-            template <typename TransparentKey, typename... Args,
-                      typename = enable_transparent_key<TransparentKey>>
-            insert_result try_emplace(const TransparentKey& key, Args&&... args)
+            template <typename TransparentKey>
+            insert_result try_emplace(TransparentKey&& key)
             {
                 auto range = equal_range(key);
                 if (AllowDuplicates || range.empty())
                 {
                     // we either don't care about duplicates or the key is not in the map
-                    auto iter =
-                        array_.emplace(convert_iterator(range.end()), std::forward<Args>(args)...);
+                    auto iter = array_.emplace(convert_iterator(range.end()),
+                                               std::forward<TransparentKey>(key));
                     return {convert_iterator(iter), !range.empty()};
                 }
                 else
@@ -221,23 +218,15 @@ namespace foonathan
                 }
             }
 
-            /// \effects Same as `insert(Key(FWD(args)...))`.
-            template <typename... Args>
-            insert_result emplace(Args&&... args)
+            /// \effects Same as `try_emplace(FWD(k))`.
+            /// \notes This function does not participate in overload resolution if `Key` is not constructible from `K`.
+            /// \param 1
+            /// \exclude
+            template <typename K, typename = typename std::enable_if<
+                                      std::is_constructible<Key, K>::value>::type>
+            insert_result insert(K&& k)
             {
-                return insert(Key(std::forward<Args>(args)...));
-            }
-
-            /// \effects Same as `try_emplace(key, key)`.
-            insert_result insert(const Key& key)
-            {
-                return try_emplace(key, key);
-            }
-
-            /// \effects Same as `try_emplace(key, std::move(key))`.
-            insert_result insert(Key&& key)
-            {
-                return try_emplace(key, std::move(key));
+                return try_emplace(std::forward<K>(k));
             }
 
             /// \effects Same as `insert_range(view.begin(), view.end())`.
@@ -254,7 +243,7 @@ namespace foonathan
                                   begin, end);
             }
 
-            /// \effects Destroys all elements.
+            /// \effects Destroys and removes all elements.
             void clear() noexcept
             {
                 array_.clear();
@@ -277,9 +266,9 @@ namespace foonathan
             }
 
             /// \effects Destroys and removes all occurrences of `key`.
-            /// \returns The number of elements that were removed, if `Compare::allow_duplicates == std::false_type`,
+            /// \returns The number of elements that were removed, if it doesn't allow duplicates,
             /// whether or not any were removed otherwise.
-            template <typename TransparentKey, typename = enable_transparent_key<TransparentKey>>
+            template <typename TransparentKey>
             auto erase_all(const TransparentKey& key) noexcept(
                 std::is_nothrow_move_assignable<Key>::value) ->
                 typename std::conditional<AllowDuplicates, size_type, bool>::type
@@ -345,19 +334,22 @@ namespace foonathan
             void assign_range(InputIt begin, InputIt end)
             {
                 array_.assign_range(begin, end);
+                std::sort(array_.begin(), array_.end(), [&](const Key& lhs, const Key& rhs) {
+                    return Compare::compare(lhs, rhs) == key_ordering::less;
+                });
             }
 
             //=== lookup ===//
             /// \returns Whether or not the key is contained in the set.
-            template <typename TransparentKey, typename = enable_transparent_key<TransparentKey>>
+            template <typename TransparentKey>
             bool contains(const TransparentKey& key) const noexcept
             {
                 return find(key) != end();
             }
 
             /// \returns An iterator to the given key, or `end()` if the key is not in the set.
-            template <typename TransparentKey, typename = enable_transparent_key<TransparentKey>>
-            iterator find(const TransparentKey& key) const noexcept
+            template <typename TransparentKey>
+            const_iterator find(const TransparentKey& key) const noexcept
             {
                 auto lower = lower_bound(key);
                 if (lower == end())
@@ -370,7 +362,7 @@ namespace foonathan
 
             /// \returns The number of occurences of `key` in the set.
             /// \notes If `Compare::allow_duplicates == std::false_type` this is either `0` or `1`.
-            template <typename TransparentKey, typename = enable_transparent_key<TransparentKey>>
+            template <typename TransparentKey>
             size_type count(const TransparentKey& key) const noexcept
             {
                 auto range = equal_range(key);
@@ -378,22 +370,22 @@ namespace foonathan
             }
 
             /// \returns Same as [array::lower_bound]() for the given `key`.
-            template <typename TransparentKey, typename = enable_transparent_key<TransparentKey>>
-            iterator lower_bound(const TransparentKey& key) const noexcept
+            template <typename TransparentKey>
+            const_iterator lower_bound(const TransparentKey& key) const noexcept
             {
                 return foonathan::array::lower_bound<Compare>(begin(), end(), key);
             }
 
             /// \returns Same as [array::upper_bound]() for the given `key`.
-            template <typename TransparentKey, typename = enable_transparent_key<TransparentKey>>
-            iterator upper_bound(const TransparentKey& key) const noexcept
+            template <typename TransparentKey>
+            const_iterator upper_bound(const TransparentKey& key) const noexcept
             {
                 return foonathan::array::upper_bound<Compare>(begin(), end(), key);
             }
 
             /// \returns Same as [array::equal_range]() for the given `key`.
-            template <typename TransparentKey, typename = enable_transparent_key<TransparentKey>>
-            iter_pair<iterator> equal_range(const TransparentKey& key) const noexcept
+            template <typename TransparentKey>
+            iter_pair<const_iterator> equal_range(const TransparentKey& key) const noexcept
             {
                 return foonathan::array::equal_range<Compare>(begin(), end(), key);
             }

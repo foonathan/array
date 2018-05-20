@@ -20,7 +20,7 @@ namespace foonathan
         {
         public:
             using iterator_category = std::random_access_iterator_tag;
-            using value_type        = T;
+            using value_type        = typename std::remove_cv<T>::type;
             using difference_type   = std::ptrdiff_t;
             using pointer           = T*;
             using reference         = T&;
