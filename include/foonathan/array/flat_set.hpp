@@ -12,12 +12,47 @@ namespace foonathan
 {
     namespace array
     {
+        /// A pair of a key with a value.
+        ///
+        /// Use this in [array::flat_set]() if you want to have an [array::flat_map]() where the values are stored together with the keys.
+        /// Only the `key` is being compared, not the value.
+        template <typename Key, typename Value>
+        struct key_value_pair
+        {
+            Key           key;
+            mutable Value value;
+
+            /// \effects Creates it by constructing the key from the given key and the value from the arguments.
+            template <typename TransparentKey, typename... ValueArgs>
+            explicit key_value_pair(TransparentKey&& key, ValueArgs&&... args)
+            : key(std::forward<TransparentKey>(key)), value(std::forward<ValueArgs>(args)...)
+            {
+            }
+        };
+
+        /// Specialization of [array::key_compare_default]() for the [array::key_value_pair]().
+        ///
+        /// It will only compare the key.
+        template <typename Key, typename Value>
+        struct key_compare_default<key_value_pair<Key, Value>>
+        {
+            template <typename T>
+            static auto compare(const key_value_pair<Key, Value>& pair, const T& t) noexcept
+                -> decltype(key_compare_default<Key>::compare(pair.key, t))
+            {
+                return key_compare_default<Key>::compare(pair.key, t);
+            }
+        };
+
         /// A sorted set of elements.
         ///
         /// It is similar to [std::set]() or [std::multiset]() — depending on `AllowDuplicates`,
         /// but uses a sorted [array::array]() with the given `BlockStorage` internally.
         ///
         /// `Compare` must be a `KeyCompare` type, not something like [std::less]().
+        ///
+        /// \notes When you have a `flat_set<key_value_pair<Key, Value>>`,
+        /// you have something similar to [array::flat_map]() but where the keys and values are stored together.
         template <typename Key, typename Compare = key_compare_default<Key>,
                   class BlockStorage = block_storage_default, bool AllowDuplicates = false>
         class flat_set
@@ -196,18 +231,20 @@ namespace foonathan
             };
 
             /// \effects Does a lookup for the given key.
-            /// If the key isn't part of the set or the set allows duplicates, inserts a key constructed from the transparent key.
+            /// If the key isn't part of the set or the set allows duplicates, inserts a key constructed from the transparent key followed by the additional arguments.
             /// Otherwise, does nothing.
             /// \returns The result of the insert operation.
-            template <typename TransparentKey>
-            insert_result try_emplace(TransparentKey&& key)
+            /// \notes The additional arguments are intended for [array::key_value_pair]() as key type.
+            template <typename TransparentKey, typename... Args>
+            insert_result try_emplace(TransparentKey&& key, Args&&... args)
             {
                 auto range = equal_range(key);
                 if (AllowDuplicates || range.empty())
                 {
                     // we either don't care about duplicates or the key is not in the map
                     auto iter = array_.emplace(convert_iterator(range.end()),
-                                               std::forward<TransparentKey>(key));
+                                               std::forward<TransparentKey>(key),
+                                               std::forward<Args>(args)...);
                     return {convert_iterator(iter), !range.empty()};
                 }
                 else
@@ -345,6 +382,28 @@ namespace foonathan
             bool contains(const TransparentKey& key) const noexcept
             {
                 return find(key) != end();
+            }
+
+            /// \returns The key that is considered equal to the given transparent key.
+            /// \requires The key must be stored in the map.
+            template <typename TransparentKey>
+            const Key& lookup(const TransparentKey& key) const noexcept
+            {
+                auto iter = find(key);
+                assert(iter != end());
+                return *iter;
+            }
+
+            /// \returns A pointer to the key that is considered equal to the given transparent key,
+            /// or `nullptr`, if there was none.
+            template <typename TransparentKey>
+            const Key* try_lookup(const TransparentKey& key) const noexcept
+            {
+                auto iter = find(key);
+                if (iter == end())
+                    return nullptr;
+                else
+                    return &*iter;
             }
 
             /// \returns An iterator to the given key, or `end()` if the key is not in the set.

@@ -35,8 +35,9 @@ namespace
         }
     };
 
-    using test_set      = flat_set<test_type>;
-    using test_multiset = flat_multiset<test_type>;
+    using test_set           = flat_set<test_type>;
+    using test_key_value_set = flat_set<key_value_pair<int, test_type>>;
+    using test_multiset      = flat_multiset<test_type>;
 
     template <class Set>
     void verify_set_impl(const Set& set, std::initializer_list<int> ids)
@@ -70,6 +71,12 @@ namespace
                 cur_index += set.count(last_id);
 
             REQUIRE(set.contains(id));
+
+            auto ptr = set.try_lookup(id);
+            REQUIRE(ptr);
+            REQUIRE(ptr->id == id);
+            REQUIRE(&set.lookup(id) == ptr);
+            REQUIRE(size_type(ptr - iterator_to_pointer(set.begin())) == cur_index);
 
             REQUIRE(size_type(set.find(id) - set.begin()) == cur_index);
 
@@ -248,6 +255,7 @@ TEST_CASE("flat_set", "[container]")
             // lookup of existing items already checked in verify_set()
 
             REQUIRE(!set.contains(0xF4F4));
+            REQUIRE(set.try_lookup(0xF4F4) == nullptr);
             REQUIRE(set.find(0xF4F4) == set.end());
             REQUIRE(set.lower_bound(0xF4F4) == set.end());
             REQUIRE(set.upper_bound(0xF4F4) == set.end());
@@ -305,6 +313,29 @@ TEST_CASE("flat_set", "[container]")
                       test_type(0xF0F0)}};
         verify_set(set, {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3});
     }
+}
+
+TEST_CASE("flat_set key_value_pair", "[container]")
+{
+    // only check special stuff
+
+    leak_checker checker;
+
+    test_key_value_set set;
+    REQUIRE(set.empty());
+
+    auto result = set.try_emplace(0xF0F0, 0xF0F0);
+    REQUIRE(result.was_inserted());
+    REQUIRE(set.size() == 1u);
+    REQUIRE(&*result.iter() == &set.min());
+    REQUIRE(set.min().key == 0xF0F0);
+    REQUIRE(set.min().value.id == 0xF0F0);
+
+    set.min().value.id = 0xF1F1;
+    REQUIRE(set.min().value.id == 0xF1F1);
+
+    result = set.try_emplace(0xF0F0, 0xF1F1);
+    REQUIRE(!result.was_inserted());
 }
 
 TEST_CASE("flat_multiset", "[container]")
