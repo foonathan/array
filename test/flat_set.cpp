@@ -40,7 +40,7 @@ namespace
     using test_multiset      = flat_multiset<test_type>;
 
     template <class Set>
-    void verify_set_impl(const Set& set, std::initializer_list<int> ids)
+    void verify_set_impl(Set& set, std::initializer_list<int> ids)
     {
         REQUIRE(set.empty() == (set.size() == 0u));
         REQUIRE(set.size() == size_type(ids.end() - ids.begin()));
@@ -95,6 +95,7 @@ namespace
     void verify_set(const Set& set, std::initializer_list<int> ids)
     {
         verify_set_impl(set, ids);
+        verify_set_impl(const_cast<Set&>(set), ids); // to test non-const overloads
 
         // copy constructor
         Set copy(set);
@@ -191,9 +192,11 @@ TEST_CASE("flat_set", "[container]")
         SECTION("duplicate insert")
         {
             result = set.insert(0xF0F0);
+            verify_set(set, {0xF0F0, 0xF2F2, 0xF3F3});
             verify_result(set, result, 0xF0F0, 0, true);
 
             result = set.insert(0xF3F3);
+            verify_set(set, {0xF0F0, 0xF2F2, 0xF3F3});
             verify_result(set, result, 0xF3F3, 2, true);
         }
         SECTION("clear")

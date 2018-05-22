@@ -44,6 +44,41 @@ namespace foonathan
             }
         };
 
+        namespace detail
+        {
+            template <std::size_t I, typename KeyValue>
+            struct get_key_value;
+
+            template <typename Key, typename Value>
+            struct get_key_value<0, key_value_pair<Key, Value>>
+            {
+                using type = const Key;
+
+                static constexpr type& get(const key_value_pair<Key, Value>& key_value)
+                {
+                    return key_value.key;
+                }
+            };
+
+            template <typename Key, typename Value>
+            struct get_key_value<1, key_value_pair<Key, Value>>
+            {
+                using type = Value;
+
+                static constexpr type& get(const key_value_pair<Key, Value>& key_value)
+                {
+                    return key_value.value;
+                }
+            };
+        } // namespace detail
+
+        template <std::size_t I, typename Key, typename Value>
+        constexpr typename detail::get_key_value<I, key_value_pair<Key, Value>>::type& get(
+            const key_value_pair<Key, Value>& key_value)
+        {
+            return detail::get_key_value<I, key_value_pair<Key, Value>>::get(key_value);
+        }
+
         /// A sorted set of elements.
         ///
         /// It is similar to [std::set]() or [std::multiset]() — depending on `AllowDuplicates`,
@@ -488,5 +523,22 @@ namespace foonathan
         using flat_multiset = flat_set<Key, Compare, BlockStorage, true>;
     } // namespace array
 } // namespace foonathan
+
+namespace std
+{
+    template <typename Key, typename Value>
+    class tuple_size<foonathan::array::key_value_pair<Key, Value>>
+    : public std::integral_constant<std::size_t, 2u>
+    {
+    };
+
+    template <std::size_t I, typename Key, typename Value>
+    class tuple_element<I, foonathan::array::key_value_pair<Key, Value>>
+    {
+    public:
+        using type = typename foonathan::array::detail::get_key_value<
+            I, foonathan::array::key_value_pair<Key, Value>>::type;
+    };
+} // namespace std
 
 #endif // FOONATHAN_ARRAY_FLAT_SET_HPP_INCLUDED

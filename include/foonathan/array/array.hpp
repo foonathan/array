@@ -363,13 +363,16 @@ namespace foonathan
                 auto mut_begin = const_cast<T*>(iterator_to_pointer(begin));
                 auto mut_end   = const_cast<T*>(iterator_to_pointer(end));
 
-                // move all elements after to the front
-                std::move(mut_end, view().data_end(), mut_begin);
+                if (mut_begin != mut_end)
+                {
+                    // move all elements after to the front
+                    std::move(mut_end, view().data_end(), mut_begin);
 
-                // destroy the elements at the end
-                auto n = mut_end - mut_begin;
-                destroy_range(std::prev(view().data_end(), n), view().data_end());
-                end_ -= std::size_t(n) * sizeof(T);
+                    // destroy the elements at the end
+                    auto n = mut_end - mut_begin;
+                    destroy_range(std::prev(view().data_end(), n), view().data_end());
+                    end_ -= std::size_t(n) * sizeof(T);
+                }
 
                 // next element after is still the first location of the range
                 return iterator(iterator_tag{}, mut_begin);

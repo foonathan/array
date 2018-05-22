@@ -19,6 +19,7 @@ set(header_files
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/config.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/contiguous_iterator.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/flat_set.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/flat_map.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/growth_policy.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/input_view.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/key_compare.hpp

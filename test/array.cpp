@@ -147,6 +147,9 @@ TEST_CASE("array", "[container]")
 
                 array.erase_range(std::next(array.begin()), std::prev(array.end()));
                 verify_array(array, {0xF0F0, 0xF5F5});
+
+                array.erase_range(array.begin(), array.begin());
+                verify_array(array, {0xF0F0, 0xF5F5});
             }
             SECTION("move constructor")
             {
