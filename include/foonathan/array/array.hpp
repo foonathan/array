@@ -269,8 +269,8 @@ namespace foonathan
             template <typename... Args>
             iterator emplace(const_iterator pos, Args&&... args)
             {
-                // note: we emplace at a given position by creating the objects at the back,
-                // then rotating it to the correct position
+                // note: we emplace at a given position by moving elements to create the space
+                // then assigning it at the position
                 //
                 // when the capacity is sufficient, this is almost as efficient as possible,
                 // just one extra swap or so
@@ -279,9 +279,23 @@ namespace foonathan
                 // however this would vastly complicate the interface and just isn't worth it,
                 // as it is the slow path anyway
 
-                auto index = pos - begin();
-                emplace_back(std::forward<Args>(args)...);
-                std::rotate(begin() + index, std::prev(end()), end());
+                auto index = size_type(pos - cbegin());
+                if (index == size())
+                    // just do an emplace back
+                    emplace_back(std::forward<Args>(args)...);
+                else
+                {
+                    // reserve for one more element
+                    reserve(size() + 1u);
+                    auto ptr = view().data() + index;
+
+                    // move all elements following it one over
+                    move_range(ptr, view().data_end(), ptr + 1);
+
+                    // create the element at the now empty position
+                    emplace_impl(ptr, std::forward<Args>(args)...);
+                }
+
                 return begin() + index;
             }
 
@@ -403,6 +417,36 @@ namespace foonathan
                 return array_view<T>(to_pointer<T>(storage_.block().begin()), to_pointer<T>(end_));
             }
 
+            void move_range(T* from_begin, T* from_end, T* to)
+            {
+                // [from_begin, assign_end) can be assigned to [from_begin + assign_range_size, cur_end)
+                // [assign_end, from_end) must be constructed at the back
+                auto cur_end           = to_pointer<T>(end_);
+                auto assign_range_size = cur_end - to;
+                auto assign_end        = from_begin + assign_range_size;
+
+                // do the construction
+                for (auto cur = assign_end; cur != from_end; ++cur)
+                {
+                    construct_object<T>(end_, std::move(*cur));
+                    end_ += sizeof(T);
+                }
+
+                // do the assignment
+                std::move_backward(from_begin, assign_end, cur_end);
+            }
+
+            template <typename Arg>
+            static auto emplace_impl(T* ptr, Arg&& arg) -> decltype(*ptr = std::forward<Arg>(arg))
+            {
+                return *ptr = std::forward<Arg>(arg);
+            }
+            template <typename... Args>
+            static void emplace_impl(T* ptr, Args&&... args)
+            {
+                *ptr = T(std::forward<Args>(args)...);
+            }
+
             template <typename InputIt>
             iterator append_range_impl(std::input_iterator_tag, InputIt begin, InputIt end)
             {
@@ -448,7 +492,7 @@ namespace foonathan
             {
                 auto index = pos - this->begin();
 
-                // again, like with insert, do an append, plus rotate
+                // just do an append plus rotate
                 auto new_begin = append_range(begin, end);
                 std::rotate(this->begin() + index, new_begin, this->end());
 

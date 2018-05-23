@@ -887,15 +887,16 @@ namespace foonathan
                 return size_type(key - iterator_to_pointer(keys_.begin()));
             }
 
+            template <typename Arg>
+            auto assign_value(value_iterator iter, Arg&& arg) noexcept
+                -> decltype(*iter = std::forward<Arg>(arg))
+            {
+                return *iter = std::forward<Arg>(arg);
+            }
             template <typename... Args>
             void assign_value(value_iterator iter, Args&&... args) const
             {
                 *iter = Value(std::forward<Args>(args)...);
-            }
-            template <typename Arg>
-            void assign_value(value_iterator iter, Arg&& arg) noexcept
-            {
-                *iter = std::forward<Arg>(arg);
             }
 
             template <typename InputIt>
