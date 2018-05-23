@@ -151,6 +151,7 @@ namespace foonathan
             template <typename... Args>
             T* construct_object(Args&&... args)
             {
+                assert(cur_end_ + sizeof(T) <= max_end_);
                 auto result = array::construct_object<T>(cur_end_, std::forward<Args>(args)...);
                 cur_end_ += sizeof(T);
                 return result;

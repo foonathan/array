@@ -227,9 +227,11 @@ namespace foonathan
             /// \effects Reserves new memory to make capacity as least as big as `new_capacity` if that isn't the case already.
             void reserve(size_type new_capacity)
             {
+                auto cur_cap_bytes = storage_.block().size();
                 auto new_cap_bytes = new_capacity * sizeof(T);
-                if (new_cap_bytes > storage_.block().size())
-                    reserve_impl(new_cap_bytes - storage_.block().size());
+
+                if (new_cap_bytes > cur_cap_bytes)
+                    end_ = storage_.reserve(new_cap_bytes - cur_cap_bytes, view());
             }
 
             /// \effects Non-binding request to make the capacity as small as necessary.
@@ -244,7 +246,7 @@ namespace foonathan
             template <typename... Args>
             T& emplace_back(Args&&... args)
             {
-                reserve_impl(sizeof(T));
+                reserve(size() + 1u);
                 auto ptr = construct_object<T>(end_, std::forward<Args>(args)...);
                 end_ += sizeof(T);
                 return *ptr;
@@ -397,16 +399,8 @@ namespace foonathan
         private:
             array_view<T> view() const noexcept
             {
+                assert(end_ <= storage_.block().end());
                 return array_view<T>(to_pointer<T>(storage_.block().begin()), to_pointer<T>(end_));
-            }
-
-            void reserve_impl(size_type min_additional_bytes)
-            {
-                auto cur_size_bytes = size_type(end_ - storage_.block().begin());
-                auto new_size_bytes = cur_size_bytes + min_additional_bytes;
-
-                if (new_size_bytes > storage_.block().size())
-                    end_ = storage_.reserve(min_additional_bytes, view());
             }
 
             template <typename InputIt>
@@ -424,7 +418,7 @@ namespace foonathan
             iterator append_range_impl(std::forward_iterator_tag, ForwardIt begin, ForwardIt end)
             {
                 auto needed = size_type(std::distance(begin, end));
-                reserve_impl(needed * sizeof(T));
+                reserve(size() + needed);
 
                 auto iter = this->end();
                 for (auto cur = begin; cur != end; ++cur)

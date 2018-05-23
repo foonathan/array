@@ -18,14 +18,16 @@ namespace foonathan
         template <std::size_t SmallBufferBytes, class BigBlockStorage>
         class block_storage_sbo : block_storage_args_storage<typename BigBlockStorage::arg_type>
         {
-            static_assert(sizeof(BigBlockStorage) <= SmallBufferBytes,
-                          "BigBlockStorage must fit in the small buffer");
             static_assert(!BigBlockStorage::embedded_storage::value,
                           "BigBlockStorage must never embedded objects");
 
         public:
             using embedded_storage = std::true_type;
             using arg_type         = typename BigBlockStorage::arg_type;
+
+            static constexpr std::size_t small_buffer_size =
+                SmallBufferBytes < sizeof(BigBlockStorage) ? sizeof(BigBlockStorage) :
+                                                             SmallBufferBytes;
 
             //=== constructors/destructors ===//
             explicit block_storage_sbo(arg_type args) noexcept
@@ -52,8 +54,8 @@ namespace foonathan
                 if (lhs.is_small() && rhs.is_small())
                 {
                     // forward to small storage
-                    block_storage_embedded<SmallBufferBytes>::swap(lhs.storage_, lhs_constructed,
-                                                                   rhs.storage_, rhs_constructed);
+                    block_storage_embedded<small_buffer_size>::swap(lhs.storage_, lhs_constructed,
+                                                                    rhs.storage_, rhs_constructed);
                     assert(lhs.block_.begin() == lhs.storage_.block().begin());
                     assert(rhs.block_.begin() == rhs.storage_.block().begin());
 
@@ -100,8 +102,12 @@ namespace foonathan
                     // transfer elements from the small storage to the big storage
                     return transfer_to_big(new_min_size, constructed);
                 else
+                {
                     // make the big storage even bigger
-                    return big_storage().reserve(min_additional_bytes, constructed);
+                    auto new_end = big_storage().reserve(min_additional_bytes, constructed);
+                    block_       = big_storage().block();
+                    return new_end;
+                }
             }
 
             template <typename T>
@@ -111,12 +117,16 @@ namespace foonathan
                     // make the small storage even smaller
                     // (this only moves the elements to the front)
                     return storage_.shrink_to_fit(constructed);
-                else if (could_be_small(constructed.size()))
+                else if (could_be_small(constructed.size() * sizeof(T)))
                     // transfer elements into the small buffer
                     return transfer_to_small(constructed);
                 else
+                {
                     // forward to the big storage
-                    return big_storage().shrink_to_fit(constructed);
+                    auto new_end = big_storage().shrink_to_fit(constructed);
+                    block_       = big_storage().block();
+                    return new_end;
+                }
             }
 
             //=== accessors ===//
@@ -145,8 +155,8 @@ namespace foonathan
             // if it returns false, storage_ contains the BigBlockStorage
             bool is_small() const noexcept
             {
-                assert(block_.size() >= SmallBufferBytes);
-                return block_.size() == SmallBufferBytes;
+                assert(block_.size() >= small_buffer_size);
+                return block_.size() == small_buffer_size;
             }
             bool is_big() const noexcept
             {
@@ -159,9 +169,9 @@ namespace foonathan
                 return *to_pointer<BigBlockStorage>(storage_.block().begin());
             }
 
-            bool could_be_small(size_type size) const noexcept
+            bool could_be_small(size_type size_in_bytes) const noexcept
             {
-                return size <= SmallBufferBytes;
+                return size_in_bytes <= small_buffer_size;
             }
 
             // precondition: we have a big empty buffer
@@ -283,8 +293,8 @@ namespace foonathan
                 assert(small.is_big() && big.is_small());
             }
 
-            memory_block                             block_; // to avoid branches
-            block_storage_embedded<SmallBufferBytes> storage_;
+            memory_block                              block_; // to avoid branches
+            block_storage_embedded<small_buffer_size> storage_;
         };
     } // namespace array
 } // namespace foonathan

@@ -6,7 +6,9 @@
 
 #include <catch.hpp>
 
+#include <foonathan/array/block_storage_embedded.hpp>
 #include <foonathan/array/block_storage_new.hpp>
+#include <foonathan/array/block_storage_sbo.hpp>
 
 #include "equal_checker.hpp"
 #include "leak_checker.hpp"
@@ -22,12 +24,14 @@ namespace
         test_type(int i) : id(static_cast<std::uint16_t>(i)) {}
     };
 
-    using test_array = array<test_type, block_storage_new<default_growth>>;
+    template <class BlockStorage>
+    using test_array = array<test_type, BlockStorage>;
 
-    void verify_array_impl(const test_array& array, std::initializer_list<int> ids)
+    template <class Array>
+    void verify_array_impl(const Array& array, std::initializer_list<int> ids)
     {
         REQUIRE(array.empty() == (array.size() == 0u));
-        REQUIRE(array.size() == ids.end() - ids.begin());
+        REQUIRE(array.size() == size_type(ids.end() - ids.begin()));
         REQUIRE(array.capacity() >= array.size());
         REQUIRE(array.capacity() <= array.max_size());
 
@@ -51,12 +55,13 @@ namespace
         }
     }
 
-    void verify_array(const test_array& array, std::initializer_list<int> ids)
+    template <class Array>
+    void verify_array(const Array& array, std::initializer_list<int> ids)
     {
         verify_array_impl(array, ids);
 
         // copy constructor
-        test_array copy(array);
+        Array copy(array);
         verify_array_impl(copy, ids);
         REQUIRE(copy.capacity() <= array.capacity());
 
@@ -86,137 +91,159 @@ namespace
         copy.assign(array);
         verify_array_impl(copy, ids);
     }
-} // namespace
 
-TEST_CASE("array", "[container]")
-{
-    SECTION("default ctor")
+    template <class Array>
+    void array_test_impl()
     {
-        test_array array;
-        verify_array(array, {});
-
-        // emplace_back/push_back
-        array.emplace_back(0xF0F0);
-        verify_array(array, {0xF0F0});
-
-        array.push_back(test_type(0xF1F1));
-        verify_array(array, {0xF0F0, 0xF1F1});
-
-        test_type test(0xF2F2);
-        array.push_back(test);
-        verify_array(array, {0xF0F0, 0xF1F1, 0xF2F2});
-
-        SECTION("emplace/insert")
+        SECTION("default ctor")
         {
-            array.emplace(array.begin(), 0xF3F3);
-            verify_array(array, {0xF3F3, 0xF0F0, 0xF1F1, 0xF2F2});
+            Array array;
+            verify_array(array, {});
 
-            array.insert(std::next(array.begin()), 0xF4F4);
-            verify_array(array, {0xF3F3, 0xF4F4, 0xF0F0, 0xF1F1, 0xF2F2});
+            // emplace_back/push_back
+            array.emplace_back(0xF0F0);
+            verify_array(array, {0xF0F0});
 
-            test.id = 0xF5F5;
-            array.insert(std::prev(array.end()), test);
-            verify_array(array, {0xF3F3, 0xF4F4, 0xF0F0, 0xF1F1, 0xF5F5, 0xF2F2});
-        }
-        SECTION("append")
-        {
-            test_type tests[] = {{0xF3F3}, {0xF4F4}, {0xF5F5}};
-            array.append(tests);
-            verify_array(array, {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3, 0xF4F4, 0xF5F5});
+            array.push_back(test_type(0xF1F1));
+            verify_array(array, {0xF0F0, 0xF1F1});
 
-            array.append_range(std::begin(tests), std::end(tests));
-            verify_array(array,
-                         {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3, 0xF4F4, 0xF5F5, 0xF3F3, 0xF4F4, 0xF5F5});
+            test_type test(0xF2F2);
+            array.push_back(test);
+            verify_array(array, {0xF0F0, 0xF1F1, 0xF2F2});
 
-            SECTION("pop_back/erase")
+            SECTION("emplace/insert")
             {
-                array.pop_back();
-                verify_array(array,
-                             {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3, 0xF4F4, 0xF5F5, 0xF3F3, 0xF4F4});
+                array.emplace(array.begin(), 0xF3F3);
+                verify_array(array, {0xF3F3, 0xF0F0, 0xF1F1, 0xF2F2});
 
-                array.erase(array.begin());
-                verify_array(array, {0xF1F1, 0xF2F2, 0xF3F3, 0xF4F4, 0xF5F5, 0xF3F3, 0xF4F4});
+                array.insert(std::next(array.begin()), 0xF4F4);
+                verify_array(array, {0xF3F3, 0xF4F4, 0xF0F0, 0xF1F1, 0xF2F2});
 
-                array.erase(array.begin() + 3);
-                verify_array(array, {0xF1F1, 0xF2F2, 0xF3F3, 0xF5F5, 0xF3F3, 0xF4F4});
+                test.id = 0xF5F5;
+                array.insert(std::prev(array.end()), test);
+                verify_array(array, {0xF3F3, 0xF4F4, 0xF0F0, 0xF1F1, 0xF5F5, 0xF2F2});
             }
-            SECTION("erase range")
+            SECTION("append")
             {
-                array.erase_range(std::prev(array.end(), 3), array.end());
+                test_type tests[] = {{0xF3F3}, {0xF4F4}, {0xF5F5}};
+                array.append(tests);
                 verify_array(array, {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3, 0xF4F4, 0xF5F5});
 
-                array.erase_range(std::next(array.begin()), std::prev(array.end()));
-                verify_array(array, {0xF0F0, 0xF5F5});
-
-                array.erase_range(array.begin(), array.begin());
-                verify_array(array, {0xF0F0, 0xF5F5});
-            }
-            SECTION("move constructor")
-            {
-                auto       data = iterator_to_pointer(array.begin());
-                test_array other(std::move(array));
-                verify_array(other, {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3, 0xF4F4, 0xF5F5, 0xF3F3, 0xF4F4,
+                array.append_range(std::begin(tests), std::end(tests));
+                verify_array(array, {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3, 0xF4F4, 0xF5F5, 0xF3F3, 0xF4F4,
                                      0xF5F5});
-                verify_array(array, {});
-                REQUIRE(iterator_to_pointer(other.begin()) == data);
 
-                SECTION("copy assignment")
+                SECTION("pop_back/erase")
                 {
-                    array = other;
-                    verify_array(array, {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3, 0xF4F4, 0xF5F5, 0xF3F3,
-                                         0xF4F4, 0xF5F5});
+                    array.pop_back();
+                    verify_array(array,
+                                 {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3, 0xF4F4, 0xF5F5, 0xF3F3, 0xF4F4});
+
+                    array.erase(array.begin());
+                    verify_array(array, {0xF1F1, 0xF2F2, 0xF3F3, 0xF4F4, 0xF5F5, 0xF3F3, 0xF4F4});
+
+                    array.erase(array.begin() + 3);
+                    verify_array(array, {0xF1F1, 0xF2F2, 0xF3F3, 0xF5F5, 0xF3F3, 0xF4F4});
+                }
+                SECTION("erase range")
+                {
+                    array.erase_range(std::prev(array.end(), 3), array.end());
+                    verify_array(array, {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3, 0xF4F4, 0xF5F5});
+
+                    array.erase_range(std::next(array.begin()), std::prev(array.end()));
+                    verify_array(array, {0xF0F0, 0xF5F5});
+
+                    array.erase_range(array.begin(), array.begin());
+                    verify_array(array, {0xF0F0, 0xF5F5});
+                }
+                SECTION("move constructor")
+                {
+                    using is_embedded = typename Array::block_storage::embedded_storage;
+
+                    auto  data = iterator_to_pointer(array.begin());
+                    Array other(std::move(array));
                     verify_array(other, {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3, 0xF4F4, 0xF5F5, 0xF3F3,
                                          0xF4F4, 0xF5F5});
-                }
-                SECTION("move assignment")
-                {
-                    array = std::move(other);
-                    verify_array(array, {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3, 0xF4F4, 0xF5F5, 0xF3F3,
-                                         0xF4F4, 0xF5F5});
-                    verify_array(other, {});
-                    REQUIRE(iterator_to_pointer(array.begin()) == data);
-                }
-                SECTION("input_view assignment")
-                {
-                    array =
-                        input_view<test_type, block_storage_new<default_growth>>(std::move(other));
-                    verify_array(array, {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3, 0xF4F4, 0xF5F5, 0xF3F3,
-                                         0xF4F4, 0xF5F5});
-                    verify_array(other, {});
-                    REQUIRE(iterator_to_pointer(array.begin()) == data);
-                }
-                SECTION("swap")
-                {
-                    swap(array, other);
-                    verify_array(array, {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3, 0xF4F4, 0xF5F5, 0xF3F3,
-                                         0xF4F4, 0xF5F5});
-                    verify_array(other, {});
-                    REQUIRE(iterator_to_pointer(array.begin()) == data);
+                    verify_array(array, {});
+                    if (!is_embedded{})
+                        REQUIRE(iterator_to_pointer(other.begin()) == data);
+
+                    SECTION("copy assignment")
+                    {
+                        array = other;
+                        verify_array(array, {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3, 0xF4F4, 0xF5F5, 0xF3F3,
+                                             0xF4F4, 0xF5F5});
+                        verify_array(other, {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3, 0xF4F4, 0xF5F5, 0xF3F3,
+                                             0xF4F4, 0xF5F5});
+                    }
+                    SECTION("move assignment")
+                    {
+                        array = std::move(other);
+                        verify_array(array, {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3, 0xF4F4, 0xF5F5, 0xF3F3,
+                                             0xF4F4, 0xF5F5});
+                        verify_array(other, {});
+                        if (!is_embedded{})
+                            REQUIRE(iterator_to_pointer(array.begin()) == data);
+                    }
+                    SECTION("input_view assignment")
+                    {
+                        array =
+                            input_view<test_type, typename Array::block_storage>(std::move(other));
+                        verify_array(array, {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3, 0xF4F4, 0xF5F5, 0xF3F3,
+                                             0xF4F4, 0xF5F5});
+                        verify_array(other, {});
+                        if (!is_embedded{})
+                            REQUIRE(iterator_to_pointer(array.begin()) == data);
+                    }
+                    SECTION("swap")
+                    {
+                        swap(array, other);
+                        verify_array(array, {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3, 0xF4F4, 0xF5F5, 0xF3F3,
+                                             0xF4F4, 0xF5F5});
+                        verify_array(other, {});
+                        if (!is_embedded{})
+                            REQUIRE(iterator_to_pointer(array.begin()) == data);
+                    }
                 }
             }
-        }
-        SECTION("multi insert")
-        {
-            test_type tests[] = {{0xF3F3}, {0xF4F4}, {0xF5F5}};
-            array.insert(std::next(array.begin()), tests);
-            verify_array(array, {0xF0F0, 0xF3F3, 0xF4F4, 0xF5F5, 0xF1F1, 0xF2F2});
+            SECTION("multi insert")
+            {
+                test_type tests[] = {{0xF3F3}, {0xF4F4}, {0xF5F5}};
+                array.insert(std::next(array.begin()), tests);
+                verify_array(array, {0xF0F0, 0xF3F3, 0xF4F4, 0xF5F5, 0xF1F1, 0xF2F2});
 
-            array.insert_range(std::prev(array.end()), std::begin(tests), std::end(tests));
-            verify_array(array,
-                         {0xF0F0, 0xF3F3, 0xF4F4, 0xF5F5, 0xF1F1, 0xF3F3, 0xF4F4, 0xF5F5, 0xF2F2});
+                array.insert_range(std::prev(array.end()), std::begin(tests), std::end(tests));
+                verify_array(array, {0xF0F0, 0xF3F3, 0xF4F4, 0xF5F5, 0xF1F1, 0xF3F3, 0xF4F4, 0xF5F5,
+                                     0xF2F2});
+            }
+            SECTION("clear")
+            {
+                auto old_cap = array.capacity();
+                array.clear();
+                REQUIRE(old_cap == array.capacity());
+                verify_array(array, {});
+            }
         }
-        SECTION("clear")
+        SECTION("input_view ctor")
         {
-            auto old_cap = array.capacity();
-            array.clear();
-            REQUIRE(old_cap == array.capacity());
-            verify_array(array, {});
+            Array array{
+                {test_type(0xF0F0), test_type(0xF1F1), test_type(0xF2F2), test_type(0xF3F3)}};
+            verify_array(array, {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3});
         }
     }
-    SECTION("input_view ctor")
-    {
-        test_array array{
-            {test_type(0xF0F0), test_type(0xF1F1), test_type(0xF2F2), test_type(0xF3F3)}};
-        verify_array(array, {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3});
-    }
+} // namespace
+
+TEST_CASE("array block_storage_new", "[container]")
+{
+    array_test_impl<test_array<block_storage_new<default_growth>>>();
+}
+
+TEST_CASE("array block_storage_embedded", "[container]")
+{
+    array_test_impl<test_array<block_storage_embedded<15 * sizeof(test_type)>>>();
+}
+
+TEST_CASE("array block_storage_sbo", "[container]")
+{
+    array_test_impl<test_array<block_storage_sbo<5 * sizeof(test_type), block_storage_default>>>();
 }
