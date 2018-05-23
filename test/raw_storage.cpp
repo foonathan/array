@@ -27,25 +27,25 @@ TEST_CASE("*_construct_object", "[core]")
     // test using partially_constructed_range to test member functions as well
     SECTION("default")
     {
-        partially_constructed_range<int> range(as_raw_pointer(&storage));
+        partially_constructed_range<int> range(static_memory_block(&storage));
         range.default_construct_object();
         // can't really check the result here...
     }
     SECTION("value")
     {
-        partially_constructed_range<int> range(as_raw_pointer(&storage));
+        partially_constructed_range<int> range(static_memory_block(&storage));
         auto                             ptr = range.default_construct_object();
         REQUIRE(*ptr == 0);
     }
     SECTION("paren")
     {
-        partially_constructed_range<test_type> range(as_raw_pointer(&storage));
+        partially_constructed_range<test_type> range(static_memory_block(&storage));
         auto                                   ptr = range.paren_construct_object(1, 2);
         REQUIRE(ptr->sum == 3);
     }
     SECTION("brace")
     {
-        partially_constructed_range<test_type> range(as_raw_pointer(&storage));
+        partially_constructed_range<test_type> range(static_memory_block(&storage));
         auto                                   ptr = range.brace_construct_object(1, 2, 3);
         REQUIRE(ptr->sum == 1);
     }
@@ -56,7 +56,7 @@ TEST_CASE("*_construct_object", "[core]")
             int i;
         };
 
-        partially_constructed_range<aggregate> range(as_raw_pointer(&storage));
+        partially_constructed_range<aggregate> range(static_memory_block(&storage));
         auto                                   ptr = range.construct_object(1);
         REQUIRE(ptr->i == 1);
     }
@@ -75,7 +75,7 @@ TEST_CASE("construct_object/destroy_object/destroy_range", "[core]")
 
     std::aligned_storage<sizeof(test_type)>::type storage{};
 
-    auto ptr = construct_object<test_type>(as_raw_pointer(&storage), 40, 2);
+    auto ptr = construct_object<test_type>(to_raw_pointer(&storage), 40, 2);
     REQUIRE(ptr == static_cast<void*>(&storage));
     REQUIRE(ptr->sum == 42);
 
@@ -102,7 +102,7 @@ TEST_CASE("partially_constructed_range", "[core]")
     };
     std::aligned_storage<10 * sizeof(test_type)>::type storage{};
 
-    partially_constructed_range<test_type> empty_range(as_raw_pointer(&storage));
+    partially_constructed_range<test_type> empty_range(static_memory_block(&storage));
 
     auto first = empty_range.construct_object(0xF0F0);
     REQUIRE(first->id == 0xF0F0);
@@ -116,17 +116,8 @@ TEST_CASE("partially_constructed_range", "[core]")
     SECTION("release")
     {
         auto end = std::move(empty_range).release();
-        REQUIRE(end == as_raw_pointer(&storage) + 3 * sizeof(test_type));
+        REQUIRE(end == to_raw_pointer(&storage) + 3 * sizeof(test_type));
         destroy_range(first, third + 1);
-    }
-    SECTION("non-empty range")
-    {
-        auto end = std::move(empty_range).release();
-
-        partially_constructed_range<test_type> non_empty(as_raw_pointer(&storage), end);
-
-        auto fourth = non_empty.construct_object(0xF3F3);
-        REQUIRE(fourth->id == 0xF3F3);
     }
 }
 
@@ -142,7 +133,7 @@ TEST_CASE("uninitialized_ construction", "[core]")
         test_type(int i) : id(static_cast<std::uint16_t>(i)) {}
     };
     std::aligned_storage<4 * sizeof(test_type)>::type storage{};
-    auto block = memory_block(as_raw_pointer(&storage), 4 * sizeof(test_type));
+    auto block = memory_block(to_raw_pointer(&storage), 4 * sizeof(test_type));
 
     raw_pointer end;
     SECTION("default construct")
@@ -195,7 +186,7 @@ TEST_CASE("uninitialized_move/move_if_noexcept/copy for trivial type", "[core]")
     test_type array[] = {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3};
 
     std::aligned_storage<4 * sizeof(test_type)>::type storage{};
-    auto block = memory_block(as_raw_pointer(&storage), 4 * sizeof(test_type));
+    auto block = memory_block(to_raw_pointer(&storage), 4 * sizeof(test_type));
 
     raw_pointer end;
     SECTION("uninitialized_move")
@@ -210,7 +201,7 @@ TEST_CASE("uninitialized_move/move_if_noexcept/copy for trivial type", "[core]")
     {
         end = uninitialized_copy(std::begin(array), std::end(array), block);
     }
-    REQUIRE(end == as_raw_pointer(&storage) + 4 * sizeof(test_type));
+    REQUIRE(end == to_raw_pointer(&storage) + 4 * sizeof(test_type));
 
     auto ptr = to_pointer<test_type>(block.begin());
     REQUIRE(ptr[0].id == 0xF0F0);
@@ -241,12 +232,12 @@ TEST_CASE("uninitialized_move", "[core]")
     test_type array[] = {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3};
 
     std::aligned_storage<4 * sizeof(test_type)>::type storage{};
-    auto block = memory_block(as_raw_pointer(&storage), 4 * sizeof(test_type));
+    auto block = memory_block(to_raw_pointer(&storage), 4 * sizeof(test_type));
 
     SECTION("nothrow")
     {
         auto end = uninitialized_move(std::begin(array), std::end(array), block);
-        REQUIRE(end == as_raw_pointer(&storage) + 4 * sizeof(test_type));
+        REQUIRE(end == to_raw_pointer(&storage) + 4 * sizeof(test_type));
 
         auto ptr = to_pointer<test_type>(block.begin());
         REQUIRE(ptr[0].id == 0xF0F0);
@@ -286,10 +277,10 @@ TEST_CASE("uninitialized_move_if_noexcept", "[core]")
         test_type array[] = {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3};
 
         std::aligned_storage<4 * sizeof(test_type)>::type storage{};
-        auto block = memory_block(as_raw_pointer(&storage), 4 * sizeof(test_type));
+        auto block = memory_block(to_raw_pointer(&storage), 4 * sizeof(test_type));
 
         auto end = uninitialized_move_if_noexcept(std::begin(array), std::end(array), block);
-        REQUIRE(end == as_raw_pointer(&storage) + 4 * sizeof(test_type));
+        REQUIRE(end == to_raw_pointer(&storage) + 4 * sizeof(test_type));
 
         auto ptr = to_pointer<test_type>(block.begin());
         REQUIRE(ptr[0].id == 0xF0F0);
@@ -322,12 +313,12 @@ TEST_CASE("uninitialized_move_if_noexcept", "[core]")
         test_type array[] = {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3};
 
         std::aligned_storage<4 * sizeof(test_type)>::type storage{};
-        auto block = memory_block(as_raw_pointer(&storage), 4 * sizeof(test_type));
+        auto block = memory_block(to_raw_pointer(&storage), 4 * sizeof(test_type));
 
         SECTION("nothrow")
         {
             auto end = uninitialized_move_if_noexcept(std::begin(array), std::end(array), block);
-            REQUIRE(end == as_raw_pointer(&storage) + 4 * sizeof(test_type));
+            REQUIRE(end == to_raw_pointer(&storage) + 4 * sizeof(test_type));
 
             auto ptr = to_pointer<test_type>(block.begin());
             REQUIRE(ptr[0].id == 0xF0F0);
@@ -366,12 +357,12 @@ TEST_CASE("uninitialized_copy", "[core]")
     test_type array[] = {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3};
 
     std::aligned_storage<4 * sizeof(test_type)>::type storage{};
-    auto block = memory_block(as_raw_pointer(&storage), 4 * sizeof(test_type));
+    auto block = memory_block(to_raw_pointer(&storage), 4 * sizeof(test_type));
 
     SECTION("nothrow")
     {
         auto end = uninitialized_copy(std::begin(array), std::end(array), block);
-        REQUIRE(end == as_raw_pointer(&storage) + 4 * sizeof(test_type));
+        REQUIRE(end == to_raw_pointer(&storage) + 4 * sizeof(test_type));
 
         auto ptr = to_pointer<test_type>(block.begin());
         REQUIRE(ptr[0].id == 0xF0F0);
@@ -406,12 +397,12 @@ TEST_CASE("uninitialized_copy_convert", "[core]")
     int array[] = {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3};
 
     std::aligned_storage<4 * sizeof(test_type)>::type storage{};
-    auto block = memory_block(as_raw_pointer(&storage), 4 * sizeof(test_type));
+    auto block = memory_block(to_raw_pointer(&storage), 4 * sizeof(test_type));
 
     SECTION("nothrow")
     {
         auto end = uninitialized_copy_convert<test_type>(std::begin(array), std::end(array), block);
-        REQUIRE(end == as_raw_pointer(&storage) + 4 * sizeof(test_type));
+        REQUIRE(end == to_raw_pointer(&storage) + 4 * sizeof(test_type));
 
         auto ptr = to_pointer<test_type>(block.begin());
         REQUIRE(ptr[0].id == 0xF0F0);
@@ -457,12 +448,12 @@ TEST_CASE("uninitialized_move_convert", "[core]")
     test_int array[] = {{0xF0F0}, {0xF1F1}, {0xF2F2}, {0xF3F3}};
 
     std::aligned_storage<4 * sizeof(test_type)>::type storage{};
-    auto block = memory_block(as_raw_pointer(&storage), 4 * sizeof(test_type));
+    auto block = memory_block(to_raw_pointer(&storage), 4 * sizeof(test_type));
 
     SECTION("nothrow")
     {
         auto end = uninitialized_move_convert<test_type>(std::begin(array), std::end(array), block);
-        REQUIRE(end == as_raw_pointer(&storage) + 4 * sizeof(test_type));
+        REQUIRE(end == to_raw_pointer(&storage) + 4 * sizeof(test_type));
 
         auto ptr = to_pointer<test_type>(block.begin());
         REQUIRE(ptr[0].id == 0xF0F0);
@@ -493,14 +484,14 @@ TEST_CASE("uninitialized_destructive_move", "[core]")
 
     std::aligned_storage<8 * sizeof(test_type)>::type storage{};
 
-    auto old_block = memory_block(as_raw_pointer(&storage), 4 * sizeof(test_type));
+    auto old_block = memory_block(to_raw_pointer(&storage), 4 * sizeof(test_type));
     paren_construct_object<test_type>(old_block.begin(), 0xF0F0);
     paren_construct_object<test_type>(old_block.begin() + sizeof(test_type), 0xF1F1);
     paren_construct_object<test_type>(old_block.begin() + 2 * sizeof(test_type), 0xF2F2);
     paren_construct_object<test_type>(old_block.begin() + 3 * sizeof(test_type), 0xF3F3);
 
     auto new_block =
-        memory_block(as_raw_pointer(&storage) + 4 * sizeof(test_type), 4 * sizeof(test_type));
+        memory_block(to_raw_pointer(&storage) + 4 * sizeof(test_type), 4 * sizeof(test_type));
 
     // no need to check for throwing, this is already tested
     uninitialized_destructive_move(to_pointer<test_type>(old_block.begin()),

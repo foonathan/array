@@ -23,7 +23,7 @@ namespace foonathan
             static memory_block allocate(handle_type&, size_type size, size_type)
             {
                 auto ptr = ::operator new[](size);
-                return {as_raw_pointer(ptr), size};
+                return {to_raw_pointer(ptr), size};
             }
 
             static void deallocate(handle_type&, memory_block&& block) noexcept

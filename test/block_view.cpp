@@ -37,12 +37,12 @@ namespace
         REQUIRE(view.begin().operator->() == view.data());
         REQUIRE(view.end().operator->() == view.data_end());
     }
-}
+} // namespace
 
 TEST_CASE("block_view", "[view]")
 {
     int  array[] = {1, 2, 3};
-    auto block   = memory_block(as_raw_pointer(array), 3 * sizeof(int));
+    auto block   = memory_block(to_raw_pointer(array), 3 * sizeof(int));
 
     SECTION("empty")
     {

@@ -12,7 +12,7 @@ TEST_CASE("raw_pointer", "[core]")
 {
     auto obj = 0;
 
-    auto ptr = as_raw_pointer(&obj);
+    auto ptr = to_raw_pointer(&obj);
     REQUIRE(to_void_pointer(ptr) == &obj);
     REQUIRE(to_pointer<int>(ptr) == &obj);
 
@@ -33,9 +33,9 @@ TEST_CASE("memory_block", "[core]")
     {
         auto obj = 0;
 
-        memory_block block(as_raw_pointer(&obj), sizeof(obj));
-        REQUIRE(block.begin() == as_raw_pointer(&obj));
-        REQUIRE(block.end() == as_raw_pointer(&obj) + sizeof(obj));
+        memory_block block(to_raw_pointer(&obj), sizeof(obj));
+        REQUIRE(block.begin() == to_raw_pointer(&obj));
+        REQUIRE(block.end() == to_raw_pointer(&obj) + sizeof(obj));
         REQUIRE(block.size() == sizeof(obj));
         REQUIRE(!block.empty());
     }

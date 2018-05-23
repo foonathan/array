@@ -146,7 +146,7 @@ namespace foonathan
                       typename = typename std::enable_if<!std::is_const<T>::value, Dummy>::type>
             constexpr memory_block block() const noexcept
             {
-                return memory_block(as_raw_pointer(begin_), as_raw_pointer(end_));
+                return memory_block(to_raw_pointer(begin_), to_raw_pointer(end_));
             }
 
         private:

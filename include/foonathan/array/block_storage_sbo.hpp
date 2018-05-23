@@ -211,7 +211,7 @@ namespace foonathan
 
                 // now big_storage() is empty and the memory is owned by temp
                 // so create a small buffer containing the temporary elements
-                return as_raw_pointer(
+                return to_raw_pointer(
                     create_small_buffer(temp, temp_constructed, temp_constructed).data_end());
             }
 
@@ -241,7 +241,7 @@ namespace foonathan
 
                 // elements successfully transferred, finalize by updating block
                 block_ = big_storage->block();
-                return as_raw_pointer(big_constructed.data_end());
+                return to_raw_pointer(big_constructed.data_end());
             }
 
             template <typename T>

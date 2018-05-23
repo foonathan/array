@@ -24,16 +24,19 @@ namespace foonathan
         /// \notes This is used to provide byte-wise access and pointer arithmetic.
         using raw_pointer = byte*;
 
-        constexpr raw_pointer as_raw_pointer(void* ptr) noexcept
+        /// \returns The raw pointer to the same memory as `ptr`.
+        constexpr raw_pointer to_raw_pointer(void* ptr) noexcept
         {
-            return static_cast<unsigned char*>(ptr);
+            return static_cast<byte*>(ptr);
         }
 
+        /// \returns A `void*` to the same memory as `ptr`.
         constexpr void* to_void_pointer(raw_pointer ptr) noexcept
         {
             return ptr;
         }
 
+        /// \returns A `T*` to the same memory as `ptr`.
         template <typename T>
         constexpr T* to_pointer(raw_pointer ptr) noexcept
         {
@@ -88,7 +91,15 @@ namespace foonathan
             raw_pointer begin_;
             raw_pointer end_;
         };
-    }
-} // namespace foonathan::array
+
+        /// \returns A memory block to the given block of bytes.
+        /// Use it with [std::aligned_storage_t](), for example.
+        template <typename StaticBlock>
+        constexpr memory_block static_memory_block(StaticBlock* block) noexcept
+        {
+            return memory_block(to_raw_pointer(block), to_raw_pointer(block) + sizeof(StaticBlock));
+        }
+    } // namespace array
+} // namespace foonathan
 
 #endif // FOONATHAN_ARRAY_MEMORY_BLOCK_HPP_INCLUDED

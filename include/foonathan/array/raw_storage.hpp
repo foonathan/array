@@ -5,6 +5,7 @@
 #ifndef FOONATHAN_ARRAY_RAW_STORAGE_HPP_INCLUDED
 #define FOONATHAN_ARRAY_RAW_STORAGE_HPP_INCLUDED
 
+#include <cassert>
 #include <cstring>
 #include <iterator>
 #include <new>
@@ -96,7 +97,7 @@ namespace foonathan
         raw_pointer destroy_object(T* object) noexcept
         {
             object->~T();
-            return as_raw_pointer(object);
+            return to_raw_pointer(object);
         }
 
         namespace detail
@@ -128,29 +129,9 @@ namespace foonathan
         class partially_constructed_range
         {
         public:
-            /// \effects Creates it giving it the start address.
-            explicit partially_constructed_range(raw_pointer memory)
-            : begin_(to_pointer<T>(memory)), end_(memory)
-            {
-            }
-
             /// \effects Creates it giving it the memory block it uses to create the objects in.
             explicit partially_constructed_range(const memory_block& block)
-            : partially_constructed_range(block.begin())
-            {
-            }
-
-            /// \effects Creates it giving it a range of already created objects.
-            /// It will create new objects starting at end.
-            partially_constructed_range(raw_pointer constructed_begin, raw_pointer constructed_end)
-            : begin_(to_pointer<T>(constructed_begin)), end_(constructed_end)
-            {
-            }
-
-            /// \effects Creates it giving it the memory block
-            /// and a range of objects that have already been created.
-            partially_constructed_range(const memory_block& block, raw_pointer constructed_end)
-            : partially_constructed_range(block.begin(), constructed_end)
+            : begin_(to_pointer<T>(block.begin())), cur_end_(block.begin()), max_end_(block.end())
             {
             }
 
@@ -160,7 +141,7 @@ namespace foonathan
             /// \effects Destroys all objects already created.
             ~partially_constructed_range() noexcept
             {
-                destroy_range(begin_, to_pointer<T>(end_));
+                destroy_range(begin_, to_pointer<T>(cur_end_));
             }
 
             /// \effects Creates a new object at the end using the corresponding free function.
@@ -170,8 +151,8 @@ namespace foonathan
             template <typename... Args>
             T* construct_object(Args&&... args)
             {
-                auto result = array::construct_object<T>(end_, std::forward<Args>(args)...);
-                end_ += sizeof(T);
+                auto result = array::construct_object<T>(cur_end_, std::forward<Args>(args)...);
+                cur_end_ += sizeof(T);
                 return result;
             }
 
@@ -179,8 +160,10 @@ namespace foonathan
             template <typename... Args>
             T* brace_construct_object(Args&&... args)
             {
-                auto result = array::list_construct_object<T>(end_, std::forward<Args>(args)...);
-                end_ += sizeof(T);
+                assert(cur_end_ + sizeof(T) <= max_end_);
+                auto result =
+                    array::list_construct_object<T>(cur_end_, std::forward<Args>(args)...);
+                cur_end_ += sizeof(T);
                 return result;
             }
 
@@ -188,24 +171,28 @@ namespace foonathan
             template <typename... Args>
             T* paren_construct_object(Args&&... args)
             {
-                auto result = array::paren_construct_object<T>(end_, std::forward<Args>(args)...);
-                end_ += sizeof(T);
+                assert(cur_end_ + sizeof(T) <= max_end_);
+                auto result =
+                    array::paren_construct_object<T>(cur_end_, std::forward<Args>(args)...);
+                cur_end_ += sizeof(T);
                 return result;
             }
 
             /// \group construct
             T* default_construct_object()
             {
-                auto result = array::default_construct_object<T>(end_);
-                end_ += sizeof(T);
+                assert(cur_end_ + sizeof(T) <= max_end_);
+                auto result = array::default_construct_object<T>(cur_end_);
+                cur_end_ += sizeof(T);
                 return result;
             }
 
             /// \group construct
             T* value_construct_object()
             {
-                auto result = array::value_construct_object<T>(end_);
-                end_ += sizeof(T);
+                assert(cur_end_ + sizeof(T) <= max_end_);
+                auto result = array::value_construct_object<T>(cur_end_);
+                cur_end_ += sizeof(T);
                 return result;
             }
 
@@ -213,15 +200,16 @@ namespace foonathan
             /// \returns A pointer to the next free memory space.
             raw_pointer release() && noexcept
             {
-                auto result = end_;
+                auto result = cur_end_;
                 begin_      = nullptr;
-                end_        = nullptr;
+                cur_end_    = nullptr;
+                max_end_    = nullptr;
                 return result;
             }
 
         private:
             T*          begin_;
-            raw_pointer end_;
+            raw_pointer cur_end_, max_end_;
         };
 
         /// \effects Creates `n` objects of type `T` in the memory block using [array::default_construct_object]().
@@ -272,6 +260,7 @@ namespace foonathan
             {
                 auto no_elements = std::size_t(end - begin);
                 auto size        = no_elements * sizeof(T);
+                assert(block.size() >= size);
                 std::memcpy(to_void_pointer(block.begin()), iterator_to_pointer(begin), size);
                 return block.begin() + size;
             }

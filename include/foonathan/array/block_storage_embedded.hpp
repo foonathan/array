@@ -82,7 +82,7 @@ namespace foonathan
             raw_pointer reserve(size_type min_additional_bytes, block_view<T> constructed)
             {
                 // move to front to allow maximal size
-                auto new_end = as_raw_pointer(move_to_front(*this, constructed).data_end());
+                auto new_end = to_raw_pointer(move_to_front(*this, constructed).data_end());
 
                 // check for overflow
                 auto new_size = constructed.size() * sizeof(T) + min_additional_bytes;
@@ -97,7 +97,7 @@ namespace foonathan
                 std::is_nothrow_move_constructible<T>{})
             {
                 // we move it to the front for good measure
-                return as_raw_pointer(move_to_front(*this, constructed).data_end());
+                return to_raw_pointer(move_to_front(*this, constructed).data_end());
             }
 
             //=== accessors ===//
@@ -108,7 +108,7 @@ namespace foonathan
 
             memory_block block() const noexcept
             {
-                return memory_block(as_raw_pointer(&storage_), BufferBytes);
+                return memory_block(to_raw_pointer(&storage_), BufferBytes);
             }
 
             arg_type arguments() const noexcept

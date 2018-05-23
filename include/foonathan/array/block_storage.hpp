@@ -339,7 +339,7 @@ namespace foonathan
                     copy_or_move_assign(move, begin, assign_end, dest_constructed);
                     auto new_end =
                         copy_or_move_construct<T>(move, assign_end, end,
-                                                  memory_block(as_raw_pointer(
+                                                  memory_block(to_raw_pointer(
                                                                    dest_constructed.data_end()),
                                                                dest.block().end()));
                     return block_view<T>(memory_block(dest.block().begin(), new_end));
@@ -393,7 +393,7 @@ namespace foonathan
             {
                 std::fill_n(dest_constructed.begin(), cur_size, obj);
                 auto new_end =
-                    uninitialized_fill(memory_block(as_raw_pointer(dest_constructed.data_end()),
+                    uninitialized_fill(memory_block(to_raw_pointer(dest_constructed.data_end()),
                                                     dest.block().end()),
                                        n - cur_size, obj);
                 return block_view<T>(memory_block(dest.block().begin(), new_end));

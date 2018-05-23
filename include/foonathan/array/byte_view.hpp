@@ -52,8 +52,8 @@ namespace foonathan
         template <typename T>
         constexpr make_byte_view_t<T> byte_view(const block_view<T>& view) noexcept
         {
-            return make_byte_view_t<T>(as_raw_pointer(view.data()),
-                                       as_raw_pointer(view.data_end()));
+            return make_byte_view_t<T>(to_raw_pointer(view.data()),
+                                       to_raw_pointer(view.data_end()));
         }
 
         /// \returns A reinterpretation of the byte view as the given type.
@@ -69,7 +69,7 @@ namespace foonathan
         {
             return make_array_view(reinterpret_block<T>(view));
         }
-    }
-} // namespace foonathan::array
+    } // namespace array
+} // namespace foonathan
 
 #endif // FOONATHAN_ARRAY_BYTE_VIEW_HPP_INCLUDED
