@@ -34,13 +34,13 @@ namespace foonathan
         ///
         /// It will only compare the key.
         template <typename Key, typename Value>
-        struct key_compare_default<key_value_pair<Key, Value>>
+        struct key_compare_default::customize_for<key_value_pair<Key, Value>>
         {
             template <typename T>
             static auto compare(const key_value_pair<Key, Value>& pair, const T& t) noexcept
-                -> decltype(key_compare_default<Key>::compare(pair.key, t))
+                -> decltype(key_compare_default::compare(pair.key, t))
             {
-                return key_compare_default<Key>::compare(pair.key, t);
+                return key_compare_default::compare(pair.key, t);
             }
         };
 
@@ -88,7 +88,7 @@ namespace foonathan
         ///
         /// \notes When you have a `flat_set<key_value_pair<Key, Value>>`,
         /// you have something similar to [array::flat_map]() but where the keys and values are stored together.
-        template <typename Key, typename Compare = key_compare_default<Key>,
+        template <typename Key, typename Compare = key_compare_default,
                   class BlockStorage = block_storage_default, bool AllowDuplicates = false>
         class flat_set
         {
@@ -152,10 +152,10 @@ namespace foonathan
             }
 
             //=== access ===//
-            /// \returns An array view to the elements.
-            operator array_view<const Key>() const noexcept
+            /// \returns A sorted view to the elements.
+            operator sorted_view<const Key, Compare>() const noexcept
             {
-                return array_;
+                return sorted_view<const Key, Compare>(array_);
             }
 
             /// \returns An input view to the elements.
@@ -518,7 +518,7 @@ namespace foonathan
         };
 
         /// Convenience typedef for an [array::flat_set]() that allows duplicates.
-        template <typename Key, typename Compare = key_compare_default<Key>,
+        template <typename Key, typename Compare = key_compare_default,
                   class BlockStorage = block_storage_default>
         using flat_multiset = flat_set<Key, Compare, BlockStorage, true>;
     } // namespace array

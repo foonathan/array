@@ -58,6 +58,12 @@ namespace foonathan
             return is_contiguous_iterator<ContIter>::to_pointer(iter);
         }
 
+        /// The value type of a contiguous iterator.
+        /// \notes This SFINAEs if the iterator is not a contiguous iterator.
+        template <typename ContIter>
+        using contiguous_iterator_value_type = typename std::remove_pointer<decltype(
+            iterator_to_pointer(std::declval<const ContIter&>()))>::type;
+
         /// \returns An iterator pointing to the same location as the pointer.
         /// \requires The pointer must be the result of an `iterator_to_pointer()` call.
         /// \notes This function only participates in overload resolution if it actually is a contiguous iterator.

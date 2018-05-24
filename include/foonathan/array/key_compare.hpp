@@ -8,17 +8,18 @@
 #include <functional>
 #include <type_traits>
 
+#include <foonathan/array/array_view.hpp>
+
 #if 0
 /// Comparison function for a given type
-template <typename Key>
 struct KeyCompare
 {
     /// Compares the key with some other type.
     ///
     /// It must define a strict total ordering of the keys.
-    /// `T` may be restricted to certain types, or just the key type itself.
-    template <typename T>
-    static key_ordering compare(const Key& key, const T& other) noexcept;
+    /// `TransparentKey` may be restricted to certain types, or just the key type itself.
+    template <typename Key, typename TransparentKey>
+    static key_ordering compare(const Key& key, const TransparentKey& other) noexcept;
 };
 #endif
 
@@ -101,19 +102,106 @@ namespace foonathan
         } // namespace comp_detail
 
         /// The default comparison of keys sorting them in increasing order.
-        ///
-        /// If `Key` is a pointer the comparison will be done using [std::less]().
-        /// Otherwise, it will first try `k.compare(t)`, then `t.compare(k)` and then `k < t`.
-        template <typename Key>
         struct key_compare_default
         {
-            template <typename T>
-            static auto compare(const Key& k, const T& t) noexcept
-                -> decltype(comp_detail::compare_impl(comp_detail::pointer{}, k, t))
+            /// Helper struct to allow customization of the default comparison for specific keys.
+            ///
+            /// This is required because `key_compare_default` itself shouldn't be a template,
+            /// but it should still be possible to override the default comparison.
+            ///
+            /// A specialization for a user-defined type must give it the same interface as required by the `KeyCompare` concept.
+            ///
+            template <typename Key>
+            struct customize_for
             {
-                return comp_detail::compare_impl(comp_detail::pointer{}, k, t);
+                /// The default default comparison.
+                ///
+                /// If `Key` is a pointer the comparison will be done using [std::less]().
+                /// Otherwise, it will first try `k.compare(t)`, then `t.compare(k)` and then `k < t`.
+                template <typename TransparentKey>
+                static auto compare(const Key& k, const TransparentKey& t) noexcept
+                    -> decltype(comp_detail::compare_impl(comp_detail::pointer{}, k, t))
+                {
+                    return comp_detail::compare_impl(comp_detail::pointer{}, k, t);
+                }
+            };
+
+            template <typename Key, typename TransparentKey>
+            static auto compare(const Key& k, const TransparentKey& t) noexcept
+                -> decltype(customize_for<Key>::compare(k, t))
+            {
+                return customize_for<Key>::compare(k, t);
             }
         };
+
+        /// A lightweight view into a sorted array.
+        ///
+        /// This is an [array::array_view]() where the elements are sorted according to `Compare`.
+        ///
+        /// \notes If you have a non sorted array, use [array::array_view]() or [array::block_view]() instead.
+        /// \notes Inheritance is only used to easily inherit all functionality as well as allow conversion without a user-defined conversion.
+        /// Slicing is permitted and works, but the type isn't meant to be used polymorphically.
+        /// \notes Write an implicit conversion operator for containers that have contiguous storage with ordering,
+        /// and specialize the [array::block_traits]() if it does not provide a `value_type` typedef.
+        template <typename T, class Compare = key_compare_default>
+        class sorted_view : public array_view<T>
+        {
+        public:
+            using array_view<T>::array_view;
+
+            /// \effects Creates a view to the block.
+            /// \requires The block is actually sorted.
+            explicit constexpr sorted_view(const block_view<T>& block) noexcept
+            : array_view<T>(block)
+            {
+            }
+
+            //=== sorted access ===//
+            /// \returns A reference to the minimal element.
+            /// \requires `!empty()`
+            constexpr T& min() const noexcept
+            {
+                return this->front();
+            }
+
+            /// \returns A reference to the maximal element.
+            /// \requires `!empty()`
+            constexpr T& max() const noexcept
+            {
+                return this->back();
+            }
+        };
+
+        /// \returns The sorted view viewing the given block.
+        /// \notes This gives the block ordering which may not be there.
+        template <class Compare = key_compare_default, typename T>
+        constexpr sorted_view<T, Compare> make_sorted_view(const block_view<T>& block) noexcept
+        {
+            return sorted_view<T, Compare>(block);
+        }
+
+        /// \returns A view to the range `[data, data + size)`.
+        template <class Compare = key_compare_default, typename T>
+        constexpr sorted_view<T> make_sorted_view(T* data, size_type size) noexcept
+        {
+            return sorted_view<T, Compare>(data, size);
+        }
+
+        /// \returns A view to the range `[begin, end)`.
+        /// \notes This function does not participate in overload resolution, unless they are contiguous iterators.
+        template <class Compare = key_compare_default, typename ContIter>
+        constexpr auto make_sorted_view(ContIter begin, ContIter end) noexcept
+            -> sorted_view<contiguous_iterator_value_type<ContIter>>
+        {
+            return {begin, end};
+        }
+
+        /// \returns A view to the array.
+        template <class Compare = key_compare_default, typename T, std::size_t N>
+        constexpr sorted_view<T, Compare> make_sorted_view(T (&array)[N]) noexcept
+        {
+            return sorted_view<T, Compare>(array);
+        }
 
         /// \returns An iterator pointing to the first element that is greater or equal to the given key.
         /// \requires The sequence is sorted according to the key comparison.

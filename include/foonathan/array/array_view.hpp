@@ -13,9 +13,10 @@ namespace foonathan
     {
         /// A lightweight view into an array.
         ///
-        /// This is an [array::block_view]() where the objects have a given ordering
+        /// This is an [array::block_view]() where the objects have "some" order
         /// and it makes sense to ask for the `n`-th element.
         /// \notes If you don't need the special functions like array access, use [array::block_view]() instead.
+        /// \notes If you require a view into a *sorted* array, use [array::sorted_view]() instead.
         /// \notes Inheritance is only used to easily inherit all functionality as well as allow conversion without a user-defined conversion.
         /// Slicing is permitted and works, but the type isn't meant to be used polymorphically.
         /// \notes Write an implicit conversion operator for containers that have contiguous storage with ordering,
@@ -90,9 +91,9 @@ namespace foonathan
         /// \notes This function does not participate in overload resolution, unless they are contiguous iterators.
         template <typename ContIter>
         constexpr auto make_array_view(ContIter begin, ContIter end) noexcept
-            -> array_view<decltype(*iterator_to_pointer(begin))>
+            -> array_view<contiguous_iterator_value_type<ContIter>>
         {
-            return array_view<decltype(*iterator_to_pointer(begin))>(begin, end);
+            return {begin, end};
         }
 
         /// \returns A view to the array.
@@ -101,7 +102,7 @@ namespace foonathan
         {
             return array_view<T>(array);
         }
-    }
-} // namespace foonathan::array
+    } // namespace array
+} // namespace foonathan
 
 #endif // FOONATHAN_ARRAY_ARRAY_VIEW_HPP_INCLUDED

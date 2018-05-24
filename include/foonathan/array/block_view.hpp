@@ -164,8 +164,8 @@ namespace foonathan
         /// \returns A view to the range `[begin, end)`.
         /// \notes This function does not participate in overload resolution, unless they are contiguous iterators.
         template <typename ContIter>
-        constexpr auto make_block_view(ContIter begin, ContIter end) noexcept -> block_view<
-            typename std::remove_reference<decltype(*iterator_to_pointer(begin))>::type>
+        constexpr auto make_block_view(ContIter begin, ContIter end) noexcept
+            -> block_view<contiguous_iterator_value_type<ContIter>>
         {
             return {begin, end};
         }

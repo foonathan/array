@@ -241,7 +241,7 @@ namespace foonathan
         /// Matching keys and values are implicitly linked by being stored at the same index.
         ///
         /// `Compare` must be a `KeyCompare` type, not something like [std::less]().
-        template <typename Key, typename Value, class Compare = key_compare_default<Key>,
+        template <typename Key, typename Value, class Compare = key_compare_default,
                   class BlockStorage = block_storage_default, bool AllowDuplicates = false>
         class flat_map
         {
@@ -291,7 +291,7 @@ namespace foonathan
 
             //=== access ===//
             /// \returns An array view to the keys.
-            array_view<const Key> keys() const noexcept
+            sorted_view<const Key, Compare> keys() const noexcept
             {
                 return keys_;
             }
@@ -916,7 +916,7 @@ namespace foonathan
         };
 
         /// Convenience typedef for an [array::flat_map]() that allows duplicates.
-        template <typename Key, typename Value, typename Compare = key_compare_default<Key>,
+        template <typename Key, typename Value, typename Compare = key_compare_default,
                   class BlockStorage = block_storage_default>
         using flat_multimap = flat_map<Key, Value, Compare, BlockStorage, true>;
     } // namespace array

@@ -8,7 +8,7 @@
 
 using namespace foonathan::array;
 
-TEST_CASE("array_view")
+TEST_CASE("array_view", "[view]")
 {
     // no need to test much, most is already handled by block_view
     const int carray[] = {1, 2, 3};

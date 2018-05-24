@@ -56,7 +56,7 @@ TEST_CASE("lower_bound/upper_bound/equal_range", "[util]")
 {
     SECTION("key_compare_default")
     {
-        using compare = key_compare_default<int>;
+        using compare = key_compare_default;
 
         std::vector<int> vec = {1, 2, 3, 5, 5, 5, 6, 7, 8};
 
@@ -111,4 +111,32 @@ TEST_CASE("lower_bound/upper_bound/equal_range", "[util]")
         test_impl<mod6_compare>(vec, 5, 6, 0);  // greater than all
         test_impl<mod6_compare>(vec, 11, 6, 0); // greater than all
     }
+}
+
+TEST_CASE("sorted_view", "[view]")
+{
+    // just test min/max here
+
+    int array[] = {1, 2, 3, 4};
+
+    sorted_view<int> view;
+    SECTION("from block")
+    {
+        view = make_sorted_view(make_block_view(array));
+    }
+    SECTION("from ptr and size")
+    {
+        view = make_sorted_view(array, 4);
+    }
+    SECTION("from range")
+    {
+        view = make_sorted_view(std::begin(array), std::end(array));
+    }
+    SECTION("from array")
+    {
+        view = make_sorted_view(array);
+    }
+
+    REQUIRE(view.min() == 1);
+    REQUIRE(view.max() == 4);
 }
