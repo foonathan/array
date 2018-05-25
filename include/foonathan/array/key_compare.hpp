@@ -147,7 +147,46 @@ namespace foonathan
         class sorted_view : public array_view<T>
         {
         public:
-            using array_view<T>::array_view;
+            /// \effects Creates an empty view.
+            constexpr sorted_view() noexcept = default;
+
+            /// \effects Creates an empty view starting at the specific address.
+            explicit constexpr sorted_view(empty_t, raw_pointer ptr) : array_view<T>(empty, ptr) {}
+
+            /// \effects Creates a view on the [array::memory_block]().
+            /// \requires The [array::memory_block]() must contain objects of type `T`.
+            explicit constexpr sorted_view(const memory_block& block) noexcept
+            : array_view<T>(block)
+            {
+            }
+
+            /// \effects Creates a view on the range `[data, data + size)`.
+            constexpr sorted_view(T* data, size_type size) : array_view<T>(data, size) {}
+
+            /// \effects Creates a view on the range `[begin, end)`.
+            /// \notes This constructor only participates in overload resolution if `ContIter` is a contiguous iterator,
+            /// and the value type is the same.
+            template <typename ContIter,
+                      typename = typename std::enable_if<
+                          std::is_same<T, contiguous_iterator_value_type<ContIter>>::value>::type>
+            constexpr sorted_view(ContIter begin, ContIter end) : array_view<T>(begin, end)
+            {
+            }
+
+            /// \effects Creates a view on the given array.
+            template <std::size_t N>
+            explicit constexpr sorted_view(T (&array)[N]) noexcept : array_view<T>(array)
+            {
+            }
+
+            /// \effects Converts a view to non-const to a view to const.
+            /// \notes This constructor only participates in overload resolution, if `const U` is the same as `T`,
+            /// i.e. `T` is `const` and `U` is the non-`const` version of it.
+            template <typename U,
+                      typename = typename std::enable_if<std::is_same<const U, T>::value>::type>
+            constexpr sorted_view(const sorted_view<U>& other) noexcept : array_view<T>(other)
+            {
+            }
 
             /// \effects Creates a view to the block.
             /// \requires The block is actually sorted.

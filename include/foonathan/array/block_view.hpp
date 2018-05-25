@@ -65,14 +65,10 @@ namespace foonathan
             /// \effects Creates a view on the range `[begin, end)`.
             /// \notes This constructor only participates in overload resolution if `ContIter` is a contiguous iterator,
             /// and the value type is the same.
-            template <typename ContIter>
-            constexpr block_view(
-                ContIter begin, ContIter end,
-                typename std::enable_if<
-                    is_contiguous_iterator<ContIter>::value
-                        && std::is_same<T*, decltype(is_contiguous_iterator<ContIter>::to_pointer(
-                                                begin))>::value,
-                    int>::type = 0)
+            template <typename ContIter,
+                      typename = typename std::enable_if<
+                          std::is_same<T, contiguous_iterator_value_type<ContIter>>::value>::type>
+            constexpr block_view(ContIter begin, ContIter end)
             : begin_(iterator_to_pointer(begin)), end_(iterator_to_pointer(end))
             {
             }
