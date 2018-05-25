@@ -21,8 +21,10 @@ endif()
 set(tests
     array.cpp
     array_view.cpp
+    bag.cpp
     block_storage.cpp
     block_storage_algorithm.hpp
+    block_storage_allocator.cpp
     block_storage_embedded.cpp
     block_storage_new.cpp
     block_storage_sbo.cpp
@@ -36,11 +38,11 @@ set(tests
     key_compare.cpp
     memory_block.cpp
     pointer_iterator.cpp
-    raw_storage.cpp
-    bag.cpp block_storage_allocator.cpp equal_checker.hpp)
+    raw_storage.cpp)
 
 add_executable(foonathan_array_test
                 test.cpp
+                equal_checker.hpp
                 leak_checker.hpp
                 ${tests})
 target_include_directories(foonathan_array_test PUBLIC ${CMAKE_CURRENT_BINARY_DIR})

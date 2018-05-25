@@ -1,7 +1,9 @@
-cmake_minimum_required(VERSION 3.9)
-project(array)
+# Copyright (C) 2018 Jonathan Müller <jonathanmueller.dev@gmail.com>
+# This file is subject to the license terms in the LICENSE file
+# found in the top-level directory of this distribution.
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wconversion -Werror")
+cmake_minimum_required(VERSION 3.1)
+project(array)
 
 set(header_files
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/array.hpp
@@ -31,8 +33,7 @@ add_library(foonathan_array INTERFACE)
 target_sources(foonathan_array INTERFACE ${header_files})
 target_include_directories(foonathan_array INTERFACE include)
 
-add_subdirectory(test)
-
-add_executable(foonathan_array_compile main.cpp)
-target_link_libraries(foonathan_array_compile PUBLIC foonathan_array)
-set_target_properties(foonathan_array_compile PROPERTIES CXX_STANDARD 11)
+if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+    enable_testing()
+    add_subdirectory(test)
+endif()
