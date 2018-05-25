@@ -611,14 +611,20 @@ namespace foonathan
             }
 
             /// \effects Same as `try_emplace(FWD(k), FWD(v))`.
-            template <typename K, typename V>
+            template <
+                typename K, typename V,
+                typename = typename std::enable_if<std::is_convertible<K, Key>::value
+                                                   && std::is_convertible<V, Value>::value>::type>
             insert_result insert(K&& k, V&& v)
             {
                 return try_emplace(std::forward<K>(k), std::forward<V>(v));
             }
 
             /// \effects Same as `emplace_or_assign(FWD(k), FWD(v))`.
-            template <typename K, typename V>
+            template <
+                typename K, typename V,
+                typename = typename std::enable_if<std::is_convertible<K, Key>::value
+                                                   && std::is_convertible<V, Value>::value>::type>
             insert_result insert_or_assign(K&& k, V&& v)
             {
                 return emplace_or_assign(std::forward<K>(k), std::forward<V>(v));

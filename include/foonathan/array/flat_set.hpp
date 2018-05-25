@@ -294,8 +294,8 @@ namespace foonathan
             /// \notes This function does not participate in overload resolution if `Key` is not constructible from `K`.
             /// \param 1
             /// \exclude
-            template <typename K, typename = typename std::enable_if<
-                                      std::is_constructible<Key, K>::value>::type>
+            template <typename K,
+                      typename = typename std::enable_if<std::is_convertible<K, Key>::value>::type>
             insert_result insert(K&& k)
             {
                 return try_emplace(std::forward<K>(k));
