@@ -26,7 +26,7 @@ This makes it possible to have a fixed sized array, an array with small buffer o
 #### Containers
 
 * `array<T>`: the `std::vector<T>` of this library
-* `bag<T>`: an `array<T>` where order of elements isn't imported, allows an `O(1)` erase
+* `bag<T>`: an `array<T>` where order of elements isn't important, allows an `O(1)` erase
 * `flat_(multi)set<Key>`: a sorted `array<Key>` with `O(log n)` lookup & co plus a superior interface to `std::set`
 * `flat_(multi)map<Key, Value>`: a `flat_set<Key>` and an `array<Value>` for key-value-storage,
 again with superior interface compared to `std::map`
