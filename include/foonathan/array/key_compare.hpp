@@ -10,19 +10,6 @@
 
 #include <foonathan/array/array_view.hpp>
 
-#if 0
-/// Comparison function for a given type
-struct KeyCompare
-{
-    /// Compares the key with some other type.
-    ///
-    /// It must define a strict total ordering of the keys.
-    /// `TransparentKey` may be restricted to certain types, or just the key type itself.
-    template <typename Key, typename TransparentKey>
-    static key_ordering compare(const Key& key, const TransparentKey& other) noexcept;
-};
-#endif
-
 namespace foonathan
 {
     namespace array

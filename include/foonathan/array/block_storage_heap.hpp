@@ -10,26 +10,6 @@
 #include <foonathan/array/block_storage.hpp>
 #include <foonathan/array/growth_policy.hpp>
 
-#if 0
-struct Heap
-{
-    /// The handle for that particular heap.
-    /// It must be cheaply and nothrow copyable.
-    struct handle_type {};
-
-    /// Allocates a memory block of the given size and alignment or throws an exception if it is unable to do so.
-    /// Doesn't need to handle size `0`.
-    static memory_block allocate(handle_type& handle, size_type size, size_type alignment);
-
-    /// Deallocates a memory block.
-    /// Doesn't need to handle empty blocks.
-    static void deallocate(handle_type& handle, memory_block&& block) noexcept;
-
-    /// Returns the maximum size of a memory block, or [array::memory_block::max_size()]() if it isn't limited by the allocator.
-    static size_type max_size(const handle_type& handle) noexcept;
-};
-#endif
-
 namespace foonathan
 {
     namespace array
