@@ -1,6 +1,6 @@
 # array
 
-[![Build Status](https://travis-ci.org/foonathan/array.svg)](https://travis-ci.org/foonathan/array)
+[![Build Status](https://travis-ci.com/foonathan/array.svg)](https://travis-ci.com/foonathan/array)
 [![Build status](https://ci.appveyor.com/api/projects/status/iydnaute3tiqxi9u?svg=true)](https://ci.appveyor.com/project/foonathan/array)
 [![Boost Licensed](https://img.shields.io/badge/license-Boost-blue.svg)](LICENSE)
 
