@@ -13,7 +13,9 @@ namespace foonathan
     {
         namespace detail
         {
-#if defined(__GLIBCXX__) && __GNUC__ < 5
+#if defined(__GLIBCXX__) && !defined(_GLIBCXX_RELEASE) && __GNUC__ < 5
+            // if _GLIBCXX_RELEASE is defined we're in libstdc++ 7 or greater
+            // if it isn't defined we check using the GCC version which is incorrect for clang...
 
 #if !defined(__clang__) && defined(__GNUC_MINOR__) && __GNUC_MINOR__ <= 8
 // types with deleted copy ctor are not considered trivially copyable in GCC 4.8
@@ -24,7 +26,7 @@ namespace foonathan
 
             // no std::is_trivially_copyable yet
             template <typename T>
-            using is_trivially_copyable = std::has_trivial_copy_constructor<T>;
+            using is_trivially_copyable = std::integral_constant<bool, __has_trivial_copy(T)>;
 #else
 
 #if defined(_MSC_VER)
