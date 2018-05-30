@@ -104,7 +104,7 @@ TEST_CASE("block_view", "[view]")
         };
 
         custom_block       block;
-        const custom_block cblock;
+        const custom_block cblock{};
 
         REQUIRE((std::is_same<block_value_type<custom_block>, int>::value));
         block_view<int> view(block);

@@ -17,7 +17,8 @@ namespace foonathan
         /// Tag type and object to mark an empty view.
         constexpr struct empty_t
         {
-        } empty;
+            constexpr empty_t() noexcept = default;
+        } empty{};
 
         /// A lightweight view into a memory block containing objects of the given type.
         ///
