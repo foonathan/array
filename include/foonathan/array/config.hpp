@@ -6,6 +6,7 @@
 #define FOONATHAN_ARRAY_CONFIG_HPP_INCLUDED
 
 #include <cstddef>
+#include <type_traits>
 
 #ifndef FOONATHAN_ARRAY_USE_CONSTEXPR14
 
@@ -37,6 +38,18 @@
 #define FOONATHAN_ARRAY_HAS_BYTE 0
 #endif
 
+#endif // FOONATHAN_ARRAY_HAS_BYTE
+
+#ifndef FOONATHAN_ARRAY_HAS_SWAPPABLE
+
+#if defined(__cpp_lib_is_swappable)
+/// \exclude
+#define FOONATHAN_ARRAY_HAS_SWAPPABLE 1
+#else
+/// \exclude
+#define FOONATHAN_ARRAY_HAS_SWAPPABLE 0
 #endif
+
+#endif // FOONATHAN_ARRAY_HAS_SWAPPABLE
 
 #endif // FOONATHAN_ARRAY_CONFIG_HPP_INCLUDED

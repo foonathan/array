@@ -5,6 +5,7 @@
 #ifndef FOONATHAN_ARRAY_BAG_HPP_INCLUDED
 #define FOONATHAN_ARRAY_BAG_HPP_INCLUDED
 
+#include <foonathan/array/detail/swappable.hpp>
 #include <foonathan/array/array.hpp>
 
 namespace foonathan
@@ -193,7 +194,7 @@ namespace foonathan
 
             /// \effects Destroys and removes the element at the given position.
             /// \returns An iterator after the element that was removed.
-            iterator erase(const_iterator iter) noexcept(std::is_nothrow_swappable<T>{})
+            iterator erase(const_iterator iter) noexcept(detail::is_nothrow_swappable<T>{})
             {
                 // const_cast is fine, no element was const
                 auto ptr = const_cast<T*>(iterator_to_pointer(iter));
