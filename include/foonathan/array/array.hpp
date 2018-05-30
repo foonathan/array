@@ -297,7 +297,7 @@ namespace foonathan
                     emplace_impl(ptr, std::forward<Args>(args)...);
                 }
 
-                return begin() + index;
+                return begin() + std::ptrdiff_t(index);
             }
 
             /// \effects Same as `emplace(pos, element)`.

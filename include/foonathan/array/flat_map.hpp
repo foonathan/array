@@ -870,24 +870,24 @@ namespace foonathan
             }
 
         private:
-            size_type index_of(key_const_iterator iter) const noexcept
+            std::ptrdiff_t index_of(key_const_iterator iter) const noexcept
             {
                 assert(iter >= keys_.begin() && iter <= keys_.end());
-                return size_type(iter - keys_.begin());
+                return iter - keys_.begin();
             }
 
-            size_type index_of(value_const_iterator iter) const noexcept
+            std::ptrdiff_t index_of(value_const_iterator iter) const noexcept
             {
                 assert(iter >= values_.begin() && iter <= values_.end());
-                return size_type(iter - values_.begin());
+                return iter - values_.begin();
             }
 
-            size_type index_of(const_iterator iter) const noexcept
+            std::ptrdiff_t index_of(const_iterator iter) const noexcept
             {
                 auto key = iter.get_key_pointer(typename const_iterator::private_key{});
                 assert(key >= iterator_to_pointer(keys_.begin())
                        && key <= iterator_to_pointer(keys_.end()));
-                return size_type(key - iterator_to_pointer(keys_.begin()));
+                return key - iterator_to_pointer(keys_.begin());
             }
 
             template <typename Arg>
