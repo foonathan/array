@@ -1,7 +1,7 @@
 # array
 
-[![Build Status](https://travis-ci.org/dacap/array.svg)](https://travis-ci.org/dacap/array)
-[![Build Status](https://ci.appveyor.com/api/projects/status/8so5vnnk5tod0xbk?svg=true)](https://ci.appveyor.com/project/dacap/array)
+[![Build Status](https://travis-ci.org/foonathan/array.svg)](https://travis-ci.org/foonathan/array)
+[![Build status](https://ci.appveyor.com/api/projects/status/iydnaute3tiqxi9u?svg=true)](https://ci.appveyor.com/project/foonathan/array)
 [![Boost Licensed](https://img.shields.io/badge/license-Boost-blue.svg)](LICENSE)
 
 > Note: This project is currently WIP, no guarantees are made until an 0.1 release.
