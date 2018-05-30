@@ -47,7 +47,7 @@ namespace foonathan
             /// \effects Creates an array without any elements.
             /// The block storage is initialized with the given arguments.
             explicit array(typename block_storage::arg_type args) noexcept
-            : storage_(std::move(args)), end_(storage_.block().begin())
+            : storage_(std::move(args)), size_(0u)
             {
             }
 
@@ -59,7 +59,8 @@ namespace foonathan
             {
                 auto new_view = std::move(input).release(storage_, view());
                 new_view      = move_to_front(storage_, new_view);
-                end_          = new_view.block().end();
+
+                size_ = new_view.size();
             }
 
             /// Copy constructor.
@@ -78,9 +79,9 @@ namespace foonathan
                 BlockStorage::swap(storage_, my_view, other.storage_, other_view);
                 assert(other_view.empty());
 
-                // update the end pointer
-                end_       = my_view.block().end();
-                other.end_ = other_view.block().end();
+                // update the size
+                size_       = my_view.size();
+                other.size_ = 0u;
             }
 
             /// Destructor.
@@ -93,7 +94,7 @@ namespace foonathan
             array& operator=(const array& other)
             {
                 auto new_view = copy_assign(storage_, view(), other.storage_, other.view());
-                end_          = new_view.block().end();
+                size_         = new_view.size();
                 return *this;
             }
 
@@ -103,8 +104,8 @@ namespace foonathan
             {
                 auto new_view =
                     move_assign(storage_, view(), std::move(other.storage_), other.view());
-                end_       = new_view.block().end();
-                other.end_ = other.storage_.block().begin();
+                size_       = new_view.size();
+                other.size_ = 0u;
                 return *this;
             }
 
@@ -122,8 +123,8 @@ namespace foonathan
                 auto lhs_view = lhs.view();
                 auto rhs_view = rhs.view();
                 BlockStorage::swap(lhs.storage_, lhs_view, rhs.storage_, rhs_view);
-                lhs.end_ = lhs_view.block().end();
-                rhs.end_ = rhs_view.block().end();
+                lhs.size_ = lhs_view.size();
+                rhs.size_ = rhs_view.size();
             }
 
             //=== access ===//
@@ -142,7 +143,7 @@ namespace foonathan
             operator input_view<T, BlockStorage>() && noexcept
             {
                 auto result = input_view<T, BlockStorage>(std::move(storage_), view());
-                end_        = storage_.empty_block().begin();
+                size_       = 0u;
                 return result;
             }
 
@@ -209,7 +210,7 @@ namespace foonathan
             /// \returns The number of elements in the array.
             size_type size() const noexcept
             {
-                return view().size();
+                return size_;
             }
 
             /// \returns The number of elements the array can contain without reserving new memory.
@@ -232,13 +233,13 @@ namespace foonathan
                 auto new_cap_bytes = new_capacity * sizeof(T);
 
                 if (new_cap_bytes > cur_cap_bytes)
-                    end_ = storage_.reserve(new_cap_bytes - cur_cap_bytes, view());
+                    storage_.reserve(new_cap_bytes - cur_cap_bytes, view());
             }
 
             /// \effects Non-binding request to make the capacity as small as necessary.
             void shrink_to_fit()
             {
-                end_ = storage_.shrink_to_fit(view());
+                storage_.shrink_to_fit(view());
             }
 
             //=== modifiers ===//
@@ -248,8 +249,9 @@ namespace foonathan
             T& emplace_back(Args&&... args)
             {
                 reserve(size() + 1u);
-                auto ptr = construct_object<T>(end_, std::forward<Args>(args)...);
-                end_ += sizeof(T);
+                auto ptr = construct_object<T>(to_raw_pointer(view().data_end()),
+                                               std::forward<Args>(args)...);
+                ++size_;
                 return *ptr;
             }
 
@@ -348,13 +350,14 @@ namespace foonathan
             void clear() noexcept
             {
                 destroy_range(begin(), end());
-                end_ = storage_.block().begin();
+                size_ = 0u;
             }
 
             /// \effects Same as `erase(std::prev(end())`.
             void pop_back() noexcept
             {
-                end_ = destroy_object(&*std::prev(end()));
+                destroy_object(&*std::prev(end()));
+                --size_;
             }
 
             /// \effects Destroys and removes the element at the given position.
@@ -388,7 +391,7 @@ namespace foonathan
                     // destroy the elements at the end
                     auto n = mut_end - mut_begin;
                     destroy_range(std::prev(view().data_end(), n), view().data_end());
-                    end_ -= std::size_t(n) * sizeof(T);
+                    size_ -= size_type(n);
                 }
 
                 // next element after is still the first location of the range
@@ -400,7 +403,7 @@ namespace foonathan
             {
                 auto new_view = std::move(block).release(storage_, view());
                 new_view      = move_to_front(storage_, new_view);
-                end_          = new_view.block().end();
+                size_         = new_view.size();
             }
 
             /// \effects Conceptually the same as `array<T> a; a.insert_range(begin, end); *this = std::move(a);`
@@ -408,29 +411,30 @@ namespace foonathan
             void assign_range(InputIt begin, InputIt end)
             {
                 auto new_view = assign_copy(storage_, view(), begin, end);
-                end_          = new_view.block().end();
+                size_         = new_view.size();
             }
 
         private:
             array_view<T> view() const noexcept
             {
-                assert(end_ <= storage_.block().end());
-                return array_view<T>(to_pointer<T>(storage_.block().begin()), to_pointer<T>(end_));
+                auto view = array_view<T>(to_pointer<T>(storage_.block().begin()), size_);
+                assert(to_raw_pointer(view.data_end()) <= storage_.block().end());
+                return view;
             }
 
             void move_range(T* from_begin, T* from_end, T* to)
             {
                 // [from_begin, assign_end) can be assigned to [from_begin + assign_range_size, cur_end)
                 // [assign_end, from_end) must be constructed at the back
-                auto cur_end           = to_pointer<T>(end_);
+                auto cur_end           = view().data_end();
                 auto assign_range_size = cur_end - to;
                 auto assign_end        = from_begin + assign_range_size;
 
                 // do the construction
                 for (auto cur = assign_end; cur != from_end; ++cur)
                 {
-                    construct_object<T>(end_, std::move(*cur));
-                    end_ += sizeof(T);
+                    construct_object<T>(to_raw_pointer(view().data_end()), std::move(*cur));
+                    ++size_;
                 }
 
                 // do the assignment
@@ -465,11 +469,13 @@ namespace foonathan
                 auto needed = size_type(std::distance(begin, end));
                 reserve(size() + needed);
 
-                auto iter = this->end();
+                auto iter    = this->end();
+                auto end_ptr = to_raw_pointer(view().data_end());
                 for (auto cur = begin; cur != end; ++cur)
                 {
-                    construct_object<T>(end_, *cur);
-                    end_ += sizeof(T);
+                    construct_object<T>(end_ptr, *cur);
+                    end_ptr += sizeof(T);
+                    ++size_;
                 }
                 return iter;
             }
@@ -501,7 +507,7 @@ namespace foonathan
             }
 
             BlockStorage storage_;
-            raw_pointer  end_;
+            size_type    size_;
         };
     } // namespace array
 } // namespace foonathan
