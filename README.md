@@ -88,6 +88,15 @@ A: Thanks. I do have a Patreon page, so consider checking it out:
 
 Header-only (almost everything is a template anyway), no dependencies (currently).
 
+It requires at least C++11, but works better with C++14 or 17.
+Compilers that are being tested on CI:
+
+* Linux: GCC 4.8, 4.9, 5, 6, 7 and clang 3.9, 4, 5
+* OSX: the clang coming with Xcode 8 and 9
+* MSVC: Visual Studio 2015 and 2017
+
+Newer compilers should work too.
+
 #### `BlockStorage` concept
 
 The core concept of this library is the `BlockStorage` — the type that controls memory block allocation:
