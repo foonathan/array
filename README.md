@@ -70,13 +70,9 @@ A: Mutable because I don't have a better word right now.
 
 A: FAQs are not really suited for bike shedding.
 
-**Q: It doesn't compile on my compiler!**
-
-A: Sorry. CI isn't set up yet. Please file an issue (or a PR, I have 5 other projects...).
-
 **Q: It breaks when I do this!**
 
-A: Don't do that. And file an issue.
+A: Don't do that. And file an issue (or a PR, I have 5 other projects...).
 
 **Q: This is awesome!**
 
