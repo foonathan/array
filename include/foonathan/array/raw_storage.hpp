@@ -11,6 +11,7 @@
 #include <new>
 #include <type_traits>
 
+#include <foonathan/array/detail/is_trivial.hpp>
 #include <foonathan/array/contiguous_iterator.hpp>
 #include <foonathan/array/memory_block.hpp>
 
@@ -251,7 +252,7 @@ namespace foonathan
             template <typename InputIter, typename T>
             struct can_memcpy
             : std::integral_constant<bool, is_contiguous_iterator<InputIter>::value
-                                               && std::is_trivially_copyable<T>::value>
+                                               && detail::is_trivially_copyable<T>::value>
             {
             };
 

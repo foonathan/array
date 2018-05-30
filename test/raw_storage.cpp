@@ -181,7 +181,8 @@ TEST_CASE("uninitialized_move/move_if_noexcept/copy for trivial type", "[core]")
         test_type(test_type&&)      = default;
         ~test_type()                = default;
     };
-    REQUIRE(std::is_trivially_copyable<test_type>::value);
+    REQUIRE(detail::is_trivially_copyable<test_type>::value
+            == FOONATHAN_ARRAY_IS_DELETED_TRIVIALLY_COPYABLE);
 
     test_type array[] = {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3};
 
@@ -197,10 +198,12 @@ TEST_CASE("uninitialized_move/move_if_noexcept/copy for trivial type", "[core]")
     {
         end = uninitialized_move_if_noexcept(std::begin(array), std::end(array), block);
     }
+#if FOONATHAN_ARRAY_IS_DELETED_TRIVIALLY_COPYABLE
     SECTION("uninitialized_copy")
     {
         end = uninitialized_copy(std::begin(array), std::end(array), block);
     }
+#endif
     REQUIRE(end == to_raw_pointer(&storage) + 4 * sizeof(test_type));
 
     auto ptr = to_pointer<test_type>(block.begin());

@@ -69,9 +69,6 @@ namespace foonathan
             template <typename Key, typename Value>
             class flat_map_iterator
             {
-                static_assert(std::is_trivially_copyable<key_value_ref<Key, Value>>::value,
-                              "pair must be trivially copyable");
-
             public:
                 struct private_key
                 {
