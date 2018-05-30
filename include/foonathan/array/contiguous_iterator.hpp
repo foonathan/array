@@ -20,16 +20,18 @@ namespace foonathan
         template <typename T>
         struct is_contiguous_iterator : std::false_type
         {
+#if 0
             /// \returns A pointer pointing to the same location as the iterator.
             /// This function must be implemented by a specialization.
             /// \notes The return type should not be `void*` but properly typed.
-            static void* to_pointer(const T& iterator) noexcept = delete;
+            static void* to_pointer(const T& iterator) noexcept;
 
             /// \returns An iterator pointing to the same location as the iterator.
             /// This function must be implemented by a specialization,
             /// it can assume the pointer was the result of a call to `to_pointer()`.
             /// \notes The argument type should not be `void*` but properly typed.
-            static T to_iterator(void* ptr) noexcept = delete;
+            static T to_iterator(void* ptr) noexcept;
+#endif
         };
 
         /// Specialization to mark plain pointers as contiguous iterators.
