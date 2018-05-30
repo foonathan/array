@@ -527,15 +527,14 @@ namespace foonathan
 namespace std
 {
     template <typename Key, typename Value>
-    class tuple_size<foonathan::array::key_value_pair<Key, Value>>
-    : public std::integral_constant<std::size_t, 2u>
+    struct tuple_size<foonathan::array::key_value_pair<Key, Value>>
+    : std::integral_constant<std::size_t, 2u>
     {
     };
 
     template <std::size_t I, typename Key, typename Value>
-    class tuple_element<I, foonathan::array::key_value_pair<Key, Value>>
+    struct tuple_element<I, foonathan::array::key_value_pair<Key, Value>>
     {
-    public:
         using type = typename foonathan::array::detail::get_key_value<
             I, foonathan::array::key_value_pair<Key, Value>>::type;
     };

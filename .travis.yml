@@ -4,8 +4,12 @@ matrix:
   include:
     - os: osx
       osx_image: xcode8
+      env:
+        - FLAGS="-Wno-mismatched-tags"
     - os: osx
       osx_image: xcode9
+      env:
+        - FLAGS="-Wno-mismatched-tags"
 
     - os: linux
     - os: linux
@@ -54,6 +58,7 @@ matrix:
             ['llvm-3.9', 'clang-3.9']
       env:
         - MATRIX_EVAL="CC=clang-3.9 && CXX=clang++-3.9"
+        - FLAGS="-Wno-mismatched-tags"
     - os: linux
       addons:
         apt:
@@ -63,6 +68,7 @@ matrix:
             ['llvm-4.0', 'clang-4.0']
       env:
         - MATRIX_EVAL="CC=clang-4.0 && CXX=clang++-4.0"
+        - FLAGS="-Wno-mismatched-tags"
     - os: linux
       addons:
         apt:
@@ -72,6 +78,7 @@ matrix:
             ['llvm-5.0', 'clang-5.0']
       env:
         - MATRIX_EVAL="CC=clang-5.0 && CXX=clang++-5.0"
+        - FLAGS="-Wno-mismatched-tags"
 
 before_install:
   - eval "${MATRIX_EVAL}"
@@ -79,7 +86,7 @@ before_install:
 before_script:
   - mkdir build
   - cd build
-  - cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-Werror -Wall -Wextra -Wconversion -Wsign-conversion"
+  - cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-Werror -Wall -Wextra -Wconversion -Wsign-conversion $FLAGS"
 
 script:
   - make
