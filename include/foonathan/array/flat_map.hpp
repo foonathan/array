@@ -69,9 +69,6 @@ namespace foonathan
             template <typename Key, typename Value>
             class flat_map_iterator
             {
-                static_assert(std::is_trivially_copyable<key_value_ref<Key, Value>>::value,
-                              "pair must be trivially copyable");
-
             public:
                 struct private_key
                 {
@@ -283,7 +280,7 @@ namespace foonathan
 
             /// Swap.
             friend void swap(flat_map& lhs, flat_map& rhs) noexcept(
-                block_storage_nothrow_move<BlockStorage, Key>{})
+                block_storage_nothrow_move<BlockStorage, Key>::value)
             {
                 swap(lhs.keys_, rhs.keys_);
                 swap(lhs.values_, rhs.values_);
@@ -873,24 +870,24 @@ namespace foonathan
             }
 
         private:
-            size_type index_of(key_const_iterator iter) const noexcept
+            std::ptrdiff_t index_of(key_const_iterator iter) const noexcept
             {
                 assert(iter >= keys_.begin() && iter <= keys_.end());
-                return size_type(iter - keys_.begin());
+                return iter - keys_.begin();
             }
 
-            size_type index_of(value_const_iterator iter) const noexcept
+            std::ptrdiff_t index_of(value_const_iterator iter) const noexcept
             {
                 assert(iter >= values_.begin() && iter <= values_.end());
-                return size_type(iter - values_.begin());
+                return iter - values_.begin();
             }
 
-            size_type index_of(const_iterator iter) const noexcept
+            std::ptrdiff_t index_of(const_iterator iter) const noexcept
             {
                 auto key = iter.get_key_pointer(typename const_iterator::private_key{});
                 assert(key >= iterator_to_pointer(keys_.begin())
                        && key <= iterator_to_pointer(keys_.end()));
-                return size_type(key - iterator_to_pointer(keys_.begin()));
+                return key - iterator_to_pointer(keys_.begin());
             }
 
             template <typename Arg>
@@ -931,15 +928,14 @@ namespace foonathan
 namespace std
 {
     template <typename Key, typename Value>
-    class tuple_size<foonathan::array::key_value_ref<Key, Value>>
-    : public std::integral_constant<std::size_t, 2u>
+    struct tuple_size<foonathan::array::key_value_ref<Key, Value>>
+    : std::integral_constant<std::size_t, 2u>
     {
     };
 
     template <std::size_t I, typename Key, typename Value>
-    class tuple_element<I, foonathan::array::key_value_ref<Key, Value>>
+    struct tuple_element<I, foonathan::array::key_value_ref<Key, Value>>
     {
-    public:
         using type = typename foonathan::array::detail::get_key_value<
             I, foonathan::array::key_value_ref<Key, Value>>::type;
     };

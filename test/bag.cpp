@@ -25,7 +25,7 @@ namespace
     void verify_bag_impl(const test_bag& bag, std::initializer_list<int> ids)
     {
         REQUIRE(bag.empty() == (bag.size() == 0u));
-        REQUIRE(bag.size() == ids.end() - ids.begin());
+        REQUIRE(bag.size() == size_type(ids.end() - ids.begin()));
         REQUIRE(bag.capacity() >= bag.size());
         REQUIRE(bag.capacity() <= bag.max_size());
 

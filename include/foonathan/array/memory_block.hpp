@@ -57,7 +57,7 @@ namespace foonathan
             constexpr memory_block() noexcept : begin_(nullptr), end_(nullptr) {}
 
             constexpr memory_block(raw_pointer memory, size_type size) noexcept
-            : begin_(memory), end_(begin_ + size)
+            : begin_(memory), end_(memory + size)
             {
             }
 

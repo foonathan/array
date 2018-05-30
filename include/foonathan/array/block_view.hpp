@@ -17,7 +17,8 @@ namespace foonathan
         /// Tag type and object to mark an empty view.
         constexpr struct empty_t
         {
-        } empty;
+            constexpr empty_t() noexcept = default;
+        } empty{};
 
         /// A lightweight view into a memory block containing objects of the given type.
         ///
@@ -176,7 +177,7 @@ namespace foonathan
         namespace block_traits_detail
         {
             template <typename T, typename = void>
-            class default_block_traits
+            struct default_block_traits
             {
             };
 
@@ -186,12 +187,12 @@ namespace foonathan
                                           typename T::value_type>::type;
 
             template <typename T>
-            class default_block_traits<T, typename std::enable_if<std::is_convertible<
-                                              T, array::block_view<cv_value_type<T>>>::value>::type>
+            struct default_block_traits<
+                T, typename std::enable_if<std::is_convertible<
+                       T, foonathan::array::block_view<cv_value_type<T>>>::value>::type>
             {
-            public:
                 using value_type = cv_value_type<T>;
-                using block_view = array::block_view<cv_value_type<T>>;
+                using block_view = foonathan::array::block_view<cv_value_type<T>>;
             };
         } // namespace block_traits_detail
 
@@ -204,35 +205,32 @@ namespace foonathan
         /// and where `T` is convertible to `block_view<T::value_type>`,
         /// and `const T` convertible to `block_view<const T::value_type>`.
         template <typename T>
-        class block_traits : public block_traits_detail::default_block_traits<T>
+        struct block_traits : block_traits_detail::default_block_traits<T>
         {
         };
 
         /// Specialization for arrays.
         template <typename T, std::size_t N>
-        class block_traits<T[N]>
+        struct block_traits<T[N]>
         {
-        public:
             using value_type = T;
-            using block_view = array::block_view<T>;
+            using block_view = foonathan::array::block_view<T>;
         };
 
         /// Specialization for [std::initializer_list]().
         template <typename T>
-        class block_traits<std::initializer_list<T>>
+        struct block_traits<std::initializer_list<T>>
         {
-        public:
             using value_type = const T;
-            using block_view = array::block_view<const T>;
+            using block_view = foonathan::array::block_view<const T>;
         };
 
         /// Specialization for [std::initializer_list]().
         template <typename T>
-        class block_traits<const std::initializer_list<T>>
+        struct block_traits<const std::initializer_list<T>>
         {
-        public:
             using value_type = const T;
-            using block_view = array::block_view<const T>;
+            using block_view = foonathan::array::block_view<const T>;
         };
 
         /// Calculates the value type of the [array::block_view]() the type is convertible to.

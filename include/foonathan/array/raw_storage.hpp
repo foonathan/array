@@ -11,6 +11,7 @@
 #include <new>
 #include <type_traits>
 
+#include <foonathan/array/detail/is_trivial.hpp>
 #include <foonathan/array/contiguous_iterator.hpp>
 #include <foonathan/array/memory_block.hpp>
 
@@ -152,7 +153,8 @@ namespace foonathan
             T* construct_object(Args&&... args)
             {
                 assert(cur_end_ + sizeof(T) <= max_end_);
-                auto result = array::construct_object<T>(cur_end_, std::forward<Args>(args)...);
+                auto result =
+                    foonathan::array::construct_object<T>(cur_end_, std::forward<Args>(args)...);
                 cur_end_ += sizeof(T);
                 return result;
             }
@@ -163,7 +165,8 @@ namespace foonathan
             {
                 assert(cur_end_ + sizeof(T) <= max_end_);
                 auto result =
-                    array::list_construct_object<T>(cur_end_, std::forward<Args>(args)...);
+                    foonathan::array::list_construct_object<T>(cur_end_,
+                                                               std::forward<Args>(args)...);
                 cur_end_ += sizeof(T);
                 return result;
             }
@@ -174,7 +177,8 @@ namespace foonathan
             {
                 assert(cur_end_ + sizeof(T) <= max_end_);
                 auto result =
-                    array::paren_construct_object<T>(cur_end_, std::forward<Args>(args)...);
+                    foonathan::array::paren_construct_object<T>(cur_end_,
+                                                                std::forward<Args>(args)...);
                 cur_end_ += sizeof(T);
                 return result;
             }
@@ -183,7 +187,7 @@ namespace foonathan
             T* default_construct_object()
             {
                 assert(cur_end_ + sizeof(T) <= max_end_);
-                auto result = array::default_construct_object<T>(cur_end_);
+                auto result = foonathan::array::default_construct_object<T>(cur_end_);
                 cur_end_ += sizeof(T);
                 return result;
             }
@@ -192,7 +196,7 @@ namespace foonathan
             T* value_construct_object()
             {
                 assert(cur_end_ + sizeof(T) <= max_end_);
-                auto result = array::value_construct_object<T>(cur_end_);
+                auto result = foonathan::array::value_construct_object<T>(cur_end_);
                 cur_end_ += sizeof(T);
                 return result;
             }
@@ -251,7 +255,7 @@ namespace foonathan
             template <typename InputIter, typename T>
             struct can_memcpy
             : std::integral_constant<bool, is_contiguous_iterator<InputIter>::value
-                                               && std::is_trivially_copyable<T>::value>
+                                               && detail::is_trivially_copyable<T>::value>
             {
             };
 

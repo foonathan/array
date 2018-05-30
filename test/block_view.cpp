@@ -103,18 +103,18 @@ TEST_CASE("block_view", "[view]")
             }
         };
 
-        custom_block       block;
-        const custom_block cblock;
+        custom_block       cust_block;
+        const custom_block ccust_block{};
 
         REQUIRE((std::is_same<block_value_type<custom_block>, int>::value));
-        block_view<int> view(block);
+        block_view<int> view(cust_block);
         test_block_view(view, memory_block());
 
         REQUIRE((std::is_same<block_value_type<const custom_block>, const int>::value));
-        block_view<const int> cview(block);
+        block_view<const int> cview(cust_block);
         test_block_view(cview, memory_block());
 
-        cview = block_view<const int>(cblock);
+        cview = block_view<const int>(ccust_block);
         test_block_view(cview, memory_block());
     }
 }

@@ -5,6 +5,7 @@
 #ifndef FOONATHAN_ARRAY_BAG_HPP_INCLUDED
 #define FOONATHAN_ARRAY_BAG_HPP_INCLUDED
 
+#include <foonathan/array/detail/swappable.hpp>
 #include <foonathan/array/array.hpp>
 
 namespace foonathan
@@ -63,7 +64,7 @@ namespace foonathan
 
             /// Swap.
             friend void swap(bag& lhs,
-                             bag& rhs) noexcept(block_storage_nothrow_move<BlockStorage, T>{})
+                             bag& rhs) noexcept(block_storage_nothrow_move<BlockStorage, T>::value)
             {
                 swap(lhs.array_, rhs.array_);
             }
@@ -193,7 +194,7 @@ namespace foonathan
 
             /// \effects Destroys and removes the element at the given position.
             /// \returns An iterator after the element that was removed.
-            iterator erase(const_iterator iter) noexcept(std::is_nothrow_swappable<T>{})
+            iterator erase(const_iterator iter) noexcept(detail::is_nothrow_swappable<T>::value)
             {
                 // const_cast is fine, no element was const
                 auto ptr = const_cast<T*>(iterator_to_pointer(iter));
@@ -212,8 +213,8 @@ namespace foonathan
 
             /// \effects Destroys all elements in the range `[begin, end)`.
             /// \returns An iterator after the last element that was removed.
-            iterator erase_range(const_iterator begin,
-                                 const_iterator end) noexcept(std::is_nothrow_move_assignable<T>{})
+            iterator erase_range(const_iterator begin, const_iterator end) noexcept(
+                std::is_nothrow_move_assignable<T>::value)
             {
                 // again, const_cast is fine
                 auto begin_ptr = const_cast<T*>(iterator_to_pointer(begin));

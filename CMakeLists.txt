@@ -5,6 +5,10 @@
 cmake_minimum_required(VERSION 3.1)
 project(array)
 
+set(detail_header_files
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/detail/is_trivial.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/detail/swappable.hpp
+    )
 set(header_files
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/array.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/array_view.hpp
@@ -30,8 +34,11 @@ set(header_files
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/raw_storage.hpp
     )
 add_library(foonathan_array INTERFACE)
-target_sources(foonathan_array INTERFACE ${header_files})
+target_sources(foonathan_array INTERFACE ${detail_header_files} ${header_files})
 target_include_directories(foonathan_array INTERFACE include)
+if(MSVC)
+    target_compile_definitions(foonathan_array INTERFACE "-D_SCL_SECURE_NO_WARNINGS")
+endif()
 
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     enable_testing()

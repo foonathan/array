@@ -1,6 +1,6 @@
 # array
 
-[![Build Status](https://travis-ci.org/foonathan/array.svg)](https://travis-ci.org/foonathan/array)
+[![Build Status](https://travis-ci.com/foonathan/array.svg)](https://travis-ci.com/foonathan/array)
 [![Build status](https://ci.appveyor.com/api/projects/status/iydnaute3tiqxi9u?svg=true)](https://ci.appveyor.com/project/foonathan/array)
 [![Boost Licensed](https://img.shields.io/badge/license-Boost-blue.svg)](LICENSE)
 
@@ -70,13 +70,9 @@ A: Mutable because I don't have a better word right now.
 
 A: FAQs are not really suited for bike shedding.
 
-**Q: It doesn't compile on my compiler!**
-
-A: Sorry. CI isn't set up yet. Please file an issue (or a PR, I have 5 other projects...).
-
 **Q: It breaks when I do this!**
 
-A: Don't do that. And file an issue.
+A: Don't do that. And file an issue (or a PR, I have 5 other projects...).
 
 **Q: This is awesome!**
 
@@ -91,6 +87,15 @@ A: Thanks. I do have a Patreon page, so consider checking it out:
 ### Building
 
 Header-only (almost everything is a template anyway), no dependencies (currently).
+
+It requires at least C++11, but works better with C++14 or 17.
+Compilers that are being tested on CI:
+
+* Linux: GCC 4.8, 4.9, 5, 6, 7 and clang 3.9, 4, 5
+* OSX: the clang coming with Xcode 8 and 9
+* MSVC: Visual Studio 2015 and 2017
+
+Newer compilers should work too.
 
 #### `BlockStorage` concept
 

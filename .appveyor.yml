@@ -19,6 +19,6 @@ install:
 build_script:
   - mkdir build
   - cd build
-  - cmake .. -G "NMake Makefiles"
+  - cmake .. -G "NMake Makefiles" -DCMAKE_CXX_FLAGS="/EHsc /WX /W4 /wd4459 /wd4800 /wd4127"
   - nmake
   - ctest --output-on-failure

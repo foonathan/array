@@ -232,7 +232,7 @@ TEST_CASE("flat_map", "[container]")
         }
         SECTION("assign insert")
         {
-            result = map.emplace_or_assign(0xF1F1, 2, 'b');
+            result = map.emplace_or_assign(0xF1F1, 2u, 'b');
             verify_result(map, result, 0xF1F1, "bb", 1, true);
             verify_map(map, {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3}, {"a", "bb", "c", "d"});
 

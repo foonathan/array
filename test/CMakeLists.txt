@@ -45,7 +45,7 @@ add_executable(foonathan_array_test
                 equal_checker.hpp
                 leak_checker.hpp
                 ${tests})
-target_include_directories(foonathan_array_test PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(foonathan_array_test SYSTEM PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(foonathan_array_test PUBLIC foonathan_array)
 set_target_properties(foonathan_array_test PROPERTIES CXX_STANDARD 11)
 
