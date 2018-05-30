@@ -149,7 +149,7 @@ namespace foonathan
             constructed = block_view<T>(empty, storage.block().begin());
 
             BlockStorage  empty(storage.arguments());
-            block_view<T> empty_constructed(array::empty, empty.block().begin());
+            block_view<T> empty_constructed(foonathan::array::empty, empty.block().begin());
             BlockStorage::swap(storage, constructed, empty, empty_constructed);
             // this will never throw as there are no objects that need moving
 
@@ -337,7 +337,8 @@ namespace foonathan
         template <class BlockStorage, typename T>
         block_view<T> move_assign(
             BlockStorage& dest, block_view<T> dest_constructed, BlockStorage&& other,
-            block_view<T> other_constructed) noexcept(block_storage_nothrow_move<BlockStorage, T>{})
+            block_view<T>
+                other_constructed) noexcept(block_storage_nothrow_move<BlockStorage, T>::value)
         {
             // 1. clear the destination
             clear_and_shrink(dest, dest_constructed);

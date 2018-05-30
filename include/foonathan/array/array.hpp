@@ -69,7 +69,7 @@ namespace foonathan
             }
 
             /// Move constructor.
-            array(array&& other) noexcept(block_storage_nothrow_move<BlockStorage, T>{})
+            array(array&& other) noexcept(block_storage_nothrow_move<BlockStorage, T>::value)
             : array(other.storage_.arguments())
             {
                 // swap the owned blocks
@@ -98,7 +98,8 @@ namespace foonathan
             }
 
             /// Move assignment operator.
-            array& operator=(array&& other) noexcept(block_storage_nothrow_move<BlockStorage, T>{})
+            array& operator=(array&& other) noexcept(
+                block_storage_nothrow_move<BlockStorage, T>::value)
             {
                 auto new_view =
                     move_assign(storage_, view(), std::move(other.storage_), other.view());
@@ -115,8 +116,8 @@ namespace foonathan
             }
 
             /// Swap.
-            friend void swap(array& lhs,
-                             array& rhs) noexcept(block_storage_nothrow_move<BlockStorage, T>{})
+            friend void swap(array& lhs, array& rhs) noexcept(
+                block_storage_nothrow_move<BlockStorage, T>::value)
             {
                 auto lhs_view = lhs.view();
                 auto rhs_view = rhs.view();

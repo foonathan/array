@@ -146,7 +146,7 @@ namespace foonathan
 
             /// Swap.
             friend void swap(flat_set& lhs, flat_set& rhs) noexcept(
-                block_storage_nothrow_move<BlockStorage, Key>{})
+                block_storage_nothrow_move<BlockStorage, Key>::value)
             {
                 swap(lhs.array_, rhs.array_);
             }

@@ -94,7 +94,7 @@ namespace foonathan
 
             template <typename T>
             raw_pointer shrink_to_fit(const block_view<T>& constructed) noexcept(
-                std::is_nothrow_move_constructible<T>{})
+                std::is_nothrow_move_constructible<T>::value)
             {
                 // we move it to the front for good measure
                 return to_raw_pointer(move_to_front(*this, constructed).data_end());

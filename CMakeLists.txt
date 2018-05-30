@@ -36,6 +36,9 @@ set(header_files
 add_library(foonathan_array INTERFACE)
 target_sources(foonathan_array INTERFACE ${detail_header_files} ${header_files})
 target_include_directories(foonathan_array INTERFACE include)
+if(MSVC)
+    target_compile_definitions(foonathan_array INTERFACE "-D_SCL_SECURE_NO_WARNINGS")
+endif()
 
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     enable_testing()

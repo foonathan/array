@@ -280,7 +280,7 @@ namespace foonathan
 
             /// Swap.
             friend void swap(flat_map& lhs, flat_map& rhs) noexcept(
-                block_storage_nothrow_move<BlockStorage, Key>{})
+                block_storage_nothrow_move<BlockStorage, Key>::value)
             {
                 swap(lhs.keys_, rhs.keys_);
                 swap(lhs.values_, rhs.values_);

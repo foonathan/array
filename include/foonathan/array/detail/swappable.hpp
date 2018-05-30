@@ -27,7 +27,7 @@ namespace foonathan
 
             // MSVC issue with std::declval
             template <typename T>
-            T& declval() noexcept;
+            constexpr T& declval() noexcept;
 
             template <typename T, typename = void>
             struct is_swappable : std::false_type

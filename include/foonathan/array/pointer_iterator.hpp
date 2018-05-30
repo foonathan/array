@@ -147,7 +147,7 @@ namespace foonathan
             }
 
         private:
-            explicit pointer_iterator(pointer ptr) : ptr_(ptr) {}
+            explicit constexpr pointer_iterator(pointer ptr) : ptr_(ptr) {}
 
             T* ptr_;
 
