@@ -2,13 +2,13 @@
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
-#ifndef FOONATHAN_ARRAY_BLOCK_STORAGE_ALGORITHM_HPP_INCLUDED
-#define FOONATHAN_ARRAY_BLOCK_STORAGE_ALGORITHM_HPP_INCLUDED
+#ifndef FOONATHAN_ARRAY_TEST_BLOCK_STORAGE_ALGORITHM_HPP_INCLUDED
+#define FOONATHAN_ARRAY_TEST_BLOCK_STORAGE_ALGORITHM_HPP_INCLUDED
 
 // the test cases for the block storage algorithms are all templated on the storage
 // that way they can be used to test both the algorithms and the BlockStorage's
 
-#include <foonathan/array/block_storage.hpp>
+#include <foonathan/array/block_storage_algorithm.hpp>
 
 #include <catch.hpp>
 
@@ -525,4 +525,4 @@ namespace test
     }
 } // namespace test
 
-#endif // FOONATHAN_ARRAY_BLOCK_STORAGE_ALGORITHM_HPP_INCLUDED
+#endif // FOONATHAN_ARRAY_TEST_BLOCK_STORAGE_ALGORITHM_HPP_INCLUDED
