@@ -128,11 +128,6 @@ namespace foonathan
             }
 
             //=== accessors ===//
-            memory_block empty_block() const noexcept
-            {
-                return storage_.block();
-            }
-
             const memory_block& block() const noexcept
             {
                 return block_;

@@ -99,11 +99,6 @@ namespace foonathan
             }
 
             //=== accessors ===//
-            memory_block empty_block() const noexcept
-            {
-                return block();
-            }
-
             memory_block block() const noexcept
             {
                 return memory_block(to_raw_pointer(&storage_), BufferBytes);

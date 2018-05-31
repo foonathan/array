@@ -69,11 +69,6 @@ namespace foonathan
             }
 
             //=== accessors ===//
-            memory_block empty_block() const noexcept
-            {
-                return {};
-            }
-
             const memory_block& block() const noexcept
             {
                 return block_;

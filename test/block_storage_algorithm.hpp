@@ -30,7 +30,6 @@ namespace test
 
         BlockStorage storage(arguments);
         auto         empty_size = storage.block().size();
-        REQUIRE(empty_size == storage.empty_block().size());
 
         auto size = 4u * sizeof(test_type);
         storage.reserve(size, block_view<test_type>(storage.block().resize(0u)));
