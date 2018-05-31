@@ -140,7 +140,7 @@ namespace foonathan
 
             static size_type max_size(const arg_type& args) noexcept
             {
-                return BigBlockStorage::max_size(args);
+                return foonathan::array::max_size<BigBlockStorage>(args);
             }
 
         private:

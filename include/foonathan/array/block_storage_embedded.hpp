@@ -9,6 +9,7 @@
 #include <exception>
 
 #include <foonathan/array/block_storage.hpp>
+#include <foonathan/array/block_storage_algorithm.hpp>
 
 namespace foonathan
 {

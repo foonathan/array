@@ -131,6 +131,30 @@ namespace foonathan
         /// It is intended as a base class for EBO, only stores arguments if not all argument types are empty.
         template <class Args>
         using block_storage_args_storage = typename detail::arg_storage<Args>::type;
+
+        //=== BlockStorage traits ===//
+        /// \exclude
+        namespace traits_detail
+        {
+            template <class BlockStorage, class Args>
+            static auto max_size(int, const Args& args) -> decltype(BlockStorage::max_size(args))
+            {
+                return BlockStorage::max_size(args);
+            }
+            template <class BlockStorage, class Args>
+            static size_type max_size(short, const Args&)
+            {
+                return memory_block::max_size();
+            }
+
+        } // namespace traits_detail
+
+        /// \returns The maximum size of a `BlockStorage` created with the given arguments.
+        template <class BlockStorage>
+        size_type max_size(const typename BlockStorage::arg_type& args) noexcept
+        {
+            return traits_detail::max_size<BlockStorage>(0, args);
+        }
     } // namespace array
 } // namespace foonathan
 

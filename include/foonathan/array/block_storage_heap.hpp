@@ -53,8 +53,10 @@ namespace foonathan
             template <typename T>
             void reserve(size_type min_additional_bytes, const block_view<T>& constructed)
             {
-                auto new_size  = GrowthPolicy::growth_size(block_.size(), min_additional_bytes,
-                                                          max_size(arguments()));
+                auto new_size =
+                    GrowthPolicy::growth_size(block_.size(), min_additional_bytes,
+                                              foonathan::array::max_size<block_storage_heap>(
+                                                  arguments()));
                 auto new_block = allocate_block(new_size, alignof(T));
                 change_block(constructed, std::move(new_block));
             }
@@ -79,7 +81,9 @@ namespace foonathan
                 return this->stored_arguments();
             }
 
-            static size_type max_size(const arg_type& args) noexcept
+            template <typename Dummy = Heap>
+            static auto max_size(const arg_type& args) noexcept
+                -> decltype(Dummy::max_size(std::get<0>(args.args)))
             {
                 auto&& handle = std::get<0>(args.args);
                 return Heap::max_size(handle);

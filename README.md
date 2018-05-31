@@ -169,6 +169,8 @@ public:
 
     /// \returns The maximum size of a memory block managed by this storage,
     /// or `memory_block::max_size()` if there is no limitation by the storage itself.
+    ///
+    /// This function is optional: if it isn't provided, `memory_block::max_size()` is used instead.
     static size_type max_size(const arg_type& args) noexcept;
 };
 ```
@@ -200,6 +202,8 @@ struct Heap
     static void deallocate(handle_type& handle, memory_block&& block) noexcept;
 
     /// Returns the maximum size of a memory block, or [array::memory_block::max_size()]() if it isn't limited by the allocator.
+    ///
+    /// This function is optional: if it isn't provided, `memory_block::max_size()` is returned.
     static size_type max_size(const handle_type& handle) noexcept;
 };
 ```

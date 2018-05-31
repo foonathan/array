@@ -224,7 +224,7 @@ namespace foonathan
             /// \returns The maximum number of elements as determined by the block storage.
             size_type max_size() const noexcept
             {
-                return BlockStorage::max_size(storage_.arguments()) / sizeof(T);
+                return foonathan::array::max_size<BlockStorage>(storage_.arguments()) / sizeof(T);
             }
 
             /// \effects Reserves new memory to make capacity as least as big as `new_capacity` if that isn't the case already.
