@@ -15,6 +15,26 @@ namespace foonathan
     namespace array
     {
         //=== BlockStorage traits ===//
+        /// \exclude
+        namespace traits_detail
+        {
+            template <class BlockStorage, typename = void>
+            struct embedded_storage : std::false_type
+            {
+            };
+
+            template <class BlockStorage>
+            struct embedded_storage<BlockStorage,
+                                    decltype(void(typename BlockStorage::embedded_storage{}))>
+            : BlockStorage::embedded_storage
+            {
+            };
+        } // namespace traits_detail
+
+        /// Whether or not the `BlockStorage` has an embedded buffer.
+        template <class BlockStorage>
+        using embedded_storage = traits_detail::embedded_storage<BlockStorage>;
+
         /// The default argument type of `BlockStorage.
         struct default_argument_type
         {

@@ -22,8 +22,7 @@ namespace foonathan
         class block_storage_heap : argument_storage<typename Heap::handle_type>
         {
         public:
-            using embedded_storage = std::false_type;
-            using argument_type    = typename Heap::handle_type;
+            using argument_type = typename Heap::handle_type;
 
             //=== constructors/destructors ===//
             explicit block_storage_heap(const argument_type& arg) noexcept

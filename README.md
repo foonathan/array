@@ -108,6 +108,8 @@ public:
     /// Whether or not the block storage may embed some objects inside.
     /// If this is true, the move and swap operations must actually move objects.
     /// If this is false, they will never physically move the objects.
+    ///
+    /// It is optional: if it is not provided, it defaults to [std::false_type]().
     using embedded_storage = std::integral_constant<bool, ...>;
 
     /// The arguments required to create the block storage.
@@ -200,7 +202,7 @@ struct Heap
 {
     /// The handle for that particular heap.
     /// It must be cheaply and nothrow copyable.
-    struct handle_type {};
+    struct handle_type;
 
     /// Allocates a memory block of the given size and alignment or throws an exception if it is unable to do so.
     /// Doesn't need to handle size `0`.

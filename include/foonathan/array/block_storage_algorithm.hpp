@@ -17,7 +17,7 @@ namespace foonathan
         /// They'll never throw if the storage does not use embedded storage or the type is nothrow move constructible.
         template <class BlockStorage, typename T>
         using block_storage_nothrow_move =
-            std::integral_constant<bool, !BlockStorage::embedded_storage::value
+            std::integral_constant<bool, !embedded_storage<BlockStorage>::value
                                              || std::is_nothrow_move_constructible<T>::value>;
 
         /// \effects Clears a block storage by destroying all constructed objects and releasing the memory.

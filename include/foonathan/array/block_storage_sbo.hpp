@@ -18,7 +18,7 @@ namespace foonathan
         template <std::size_t SmallBufferBytes, class BigBlockStorage>
         class block_storage_sbo : argument_storage_for<BigBlockStorage>
         {
-            static_assert(!BigBlockStorage::embedded_storage::value,
+            static_assert(!embedded_storage<BigBlockStorage>::value,
                           "BigBlockStorage must never embedded objects");
 
         public:
