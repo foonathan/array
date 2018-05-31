@@ -8,6 +8,7 @@
 #include <utility>
 
 #include <foonathan/array/block_storage.hpp>
+#include <foonathan/array/block_view.hpp>
 #include <foonathan/array/growth_policy.hpp>
 
 namespace foonathan
@@ -18,16 +19,15 @@ namespace foonathan
         ///
         /// It does not have a small buffer optimization.
         template <class Heap, class GrowthPolicy>
-        class block_storage_heap
-        : block_storage_args_storage<block_storage_args_t<typename Heap::handle_type>>
+        class block_storage_heap : argument_storage<typename Heap::handle_type>
         {
         public:
             using embedded_storage = std::false_type;
-            using arg_type         = block_storage_args_t<typename Heap::handle_type>;
+            using argument_type    = typename Heap::handle_type;
 
             //=== constructors/destructors ===//
-            explicit block_storage_heap(const arg_type& arg) noexcept
-            : block_storage_args_storage<arg_type>(arg)
+            explicit block_storage_heap(const argument_type& arg) noexcept
+            : argument_storage<argument_type>(arg)
             {
             }
 
@@ -43,8 +43,7 @@ namespace foonathan
             static void swap(block_storage_heap& lhs, block_view<T>& lhs_constructed,
                              block_storage_heap& rhs, block_view<T>& rhs_constructed) noexcept
             {
-                std::swap(static_cast<block_storage_args_storage<arg_type>&>(lhs),
-                          static_cast<block_storage_args_storage<arg_type>&>(rhs));
+                lhs.swap_argument(rhs);
                 std::swap(lhs.block_, rhs.block_);
                 std::swap(lhs_constructed, rhs_constructed);
             }
@@ -56,7 +55,7 @@ namespace foonathan
                 auto new_size =
                     GrowthPolicy::growth_size(block_.size(), min_additional_bytes,
                                               foonathan::array::max_size<block_storage_heap>(
-                                                  arguments()));
+                                                  argument()));
                 auto new_block = allocate_block(new_size, alignof(T));
                 change_block(constructed, std::move(new_block));
             }
@@ -76,23 +75,22 @@ namespace foonathan
                 return block_;
             }
 
-            auto arguments() const noexcept -> decltype(this->stored_arguments())
+            auto argument() const noexcept -> decltype(this->stored_argument())
             {
-                return this->stored_arguments();
+                return this->stored_argument();
             }
 
             template <typename Dummy = Heap>
-            static auto max_size(const arg_type& args) noexcept
-                -> decltype(Dummy::max_size(std::get<0>(args.args)))
+            static auto max_size(const argument_type& handle) noexcept
+                -> decltype(Dummy::max_size(handle))
             {
-                auto&& handle = std::get<0>(args.args);
                 return Heap::max_size(handle);
             }
 
         private:
             void deallocate_block(memory_block&& block) noexcept
             {
-                auto&& handle = std::get<0>(this->stored_arguments().args);
+                auto&& handle = this->stored_argument();
                 if (!block.empty())
                     Heap::deallocate(handle, std::move(block));
             }
@@ -100,10 +98,10 @@ namespace foonathan
             memory_block allocate_block(size_type size, size_type alignment)
             {
                 if (size == 0)
-                    return memory_block();
+                    return {};
                 else
                 {
-                    auto&& handle = std::get<0>(this->stored_arguments().args);
+                    auto&& handle = this->stored_argument();
                     return Heap::allocate(handle, size, alignment);
                 }
             }

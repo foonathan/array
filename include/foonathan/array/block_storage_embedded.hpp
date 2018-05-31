@@ -31,10 +31,9 @@ namespace foonathan
         {
         public:
             using embedded_storage = std::true_type;
-            using arg_type         = block_storage_args_t<>;
 
             //=== constructor/destructor ===//
-            explicit block_storage_embedded(arg_type) noexcept {}
+            explicit block_storage_embedded(default_argument_type) noexcept {}
 
             block_storage_embedded(const block_storage_embedded&) = delete;
             block_storage_embedded& operator=(const block_storage_embedded&) = delete;
@@ -105,12 +104,7 @@ namespace foonathan
                 return memory_block(to_raw_pointer(&storage_), BufferBytes);
             }
 
-            arg_type arguments() const noexcept
-            {
-                return {};
-            }
-
-            static size_type max_size(const arg_type&) noexcept
+            static size_type max_size() noexcept
             {
                 return BufferBytes;
             }

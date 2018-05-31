@@ -5,6 +5,8 @@
 #ifndef FOONATHAN_ARRAY_ARRAY_HPP_INCLUDED
 #define FOONATHAN_ARRAY_ARRAY_HPP_INCLUDED
 
+#include <algorithm>
+
 #include <foonathan/array/block_storage.hpp>
 #include <foonathan/array/block_storage_algorithm.hpp>
 #include <foonathan/array/block_storage_new.hpp>
@@ -43,20 +45,17 @@ namespace foonathan
             /// Default constructor.
             /// \effects Creates an array without any elements.
             /// The block storage is initialized with default constructed arguments.
-            array() : array(typename block_storage::arg_type{}) {}
+            array() : array(argument_type<BlockStorage>{}) {}
 
             /// \effects Creates an array without any elements.
             /// The block storage is initialized with the given arguments.
-            explicit array(typename block_storage::arg_type args) noexcept
-            : storage_(std::move(args)), size_(0u)
-            {
-            }
+            explicit array(argument_type<BlockStorage> arg) noexcept : storage_(arg), size_(0u) {}
 
             /// \effects Creates an array containing the elements of the view.
             /// The block storage is initialized with the given arguments.
-            explicit array(input_view<T, BlockStorage>&&    input,
-                           typename block_storage::arg_type args = {})
-            : array(std::move(args))
+            explicit array(input_view<T, BlockStorage>&& input,
+                           argument_type<BlockStorage>   arg = {})
+            : array(arg)
             {
                 auto new_view = std::move(input).release(storage_, view());
                 new_view      = move_to_front(storage_, new_view);
@@ -65,14 +64,14 @@ namespace foonathan
             }
 
             /// Copy constructor.
-            array(const array& other) : array(other.storage_.arguments())
+            array(const array& other) : array(argument_of(other.storage_))
             {
                 append_range(other.begin(), other.end());
             }
 
             /// Move constructor.
             array(array&& other) noexcept(block_storage_nothrow_move<BlockStorage, T>::value)
-            : array(other.storage_.arguments())
+            : array(argument_of(other.storage_))
             {
                 // swap the owned blocks
                 auto my_view    = view();
@@ -224,7 +223,7 @@ namespace foonathan
             /// \returns The maximum number of elements as determined by the block storage.
             size_type max_size() const noexcept
             {
-                return foonathan::array::max_size<BlockStorage>(storage_.arguments()) / sizeof(T);
+                return foonathan::array::max_size(storage_) / sizeof(T);
             }
 
             /// \effects Reserves new memory to make capacity as least as big as `new_capacity` if that isn't the case already.

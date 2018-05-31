@@ -43,15 +43,12 @@ namespace foonathan
 
             /// \effects Creates a bag without any elements.
             /// The block storage is initialized with the given arguments.
-            explicit bag(typename block_storage::arg_type args) noexcept : array_(std::move(args))
-            {
-            }
+            explicit bag(argument_type<BlockStorage> arg) noexcept : array_(arg) {}
 
             /// \effects Creates a bag containing the elements of the view.
             /// The block storage is initialized with the given arguments.
-            explicit bag(input_view<T, BlockStorage>&&    input,
-                         typename block_storage::arg_type args = {})
-            : array_(std::move(input), std::move(args))
+            explicit bag(input_view<T, BlockStorage>&& input, argument_type<BlockStorage> arg = {})
+            : array_(std::move(input), arg)
             {
             }
 

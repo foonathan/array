@@ -16,22 +16,22 @@ namespace foonathan
         /// A `BlockStorage` that has a small buffer of the given size it uses for small allocations,
         /// then uses the `BigBlockStorage` for dynamic allocations.
         template <std::size_t SmallBufferBytes, class BigBlockStorage>
-        class block_storage_sbo : block_storage_args_storage<typename BigBlockStorage::arg_type>
+        class block_storage_sbo : argument_storage_for<BigBlockStorage>
         {
             static_assert(!BigBlockStorage::embedded_storage::value,
                           "BigBlockStorage must never embedded objects");
 
         public:
             using embedded_storage = std::true_type;
-            using arg_type         = typename BigBlockStorage::arg_type;
+            using argument_type    = argument_type<BigBlockStorage>;
 
             static constexpr std::size_t small_buffer_size =
                 SmallBufferBytes < sizeof(BigBlockStorage) ? sizeof(BigBlockStorage) :
                                                              SmallBufferBytes;
 
             //=== constructors/destructors ===//
-            explicit block_storage_sbo(arg_type args) noexcept
-            : block_storage_args_storage<arg_type>(std::move(args)), storage_({})
+            explicit block_storage_sbo(const argument_type& arg) noexcept
+            : argument_storage_for<BigBlockStorage>(arg), storage_({})
             {
                 // start out small
                 block_ = storage_.block();
@@ -60,9 +60,7 @@ namespace foonathan
                     assert(rhs.block_.begin() == rhs.storage_.block().begin());
 
                     // propagate stored arguments as well
-                    auto tmp_args = lhs.arguments();
-                    lhs.set_stored_arguments(rhs.arguments());
-                    rhs.set_stored_arguments(std::move(tmp_args));
+                    lhs.swap_argument(rhs);
                 }
                 else if (lhs.is_big() && rhs.is_big())
                 {
@@ -73,9 +71,7 @@ namespace foonathan
                     rhs.block_ = rhs.big_storage().block();
 
                     // propagate stored arguments as well
-                    auto tmp_args = lhs.arguments();
-                    lhs.set_stored_arguments(rhs.arguments());
-                    rhs.set_stored_arguments(std::move(tmp_args));
+                    lhs.swap_argument(rhs);
                 }
                 else if (lhs.is_small())
                     swap_small_big(lhs, lhs_constructed, rhs, rhs_constructed);
@@ -133,14 +129,14 @@ namespace foonathan
                 return block_;
             }
 
-            auto arguments() const noexcept -> decltype(this->stored_arguments())
+            auto argument() const noexcept -> decltype(this->stored_argument())
             {
-                return this->stored_arguments();
+                return this->stored_argument();
             }
 
-            static size_type max_size(const arg_type& args) noexcept
+            static size_type max_size(const argument_type& arg) noexcept
             {
-                return foonathan::array::max_size<BigBlockStorage>(args);
+                return foonathan::array::max_size<BigBlockStorage>(arg);
             }
 
         private:
@@ -190,7 +186,7 @@ namespace foonathan
                 catch (...)
                 {
                     // if the move fails, restore the big storage
-                    construct_object<BigBlockStorage>(storage_.block().begin(), arguments());
+                    construct_object<BigBlockStorage>(storage_.block().begin(), argument());
                     block_view<T> big_constructed;
                     BigBlockStorage::swap(temp, temp_constructed, big_storage(), big_constructed);
                     throw;
@@ -208,7 +204,7 @@ namespace foonathan
 
                 // first we need to transfer ownership of the heap buffer
                 // note: this is cheap and nothrow, as it only does pointer swaps, not elements
-                BigBlockStorage temp(arguments());
+                BigBlockStorage temp(argument());
                 block_view<T>   temp_constructed;
                 BigBlockStorage::swap(temp, temp_constructed, big_storage(), constructed);
 
@@ -223,7 +219,7 @@ namespace foonathan
                 assert(is_small());
 
                 // first we need a temporary owner for the new memory block
-                BigBlockStorage temp(arguments());
+                BigBlockStorage temp(argument());
                 temp.reserve(new_min_size, block_view<T>());
 
                 // then we move the elements into the temporary owner
@@ -234,7 +230,7 @@ namespace foonathan
 
                 // the embedded storage is now free, create the final big storage
                 auto big_storage =
-                    construct_object<BigBlockStorage>(storage_.block().begin(), arguments());
+                    construct_object<BigBlockStorage>(storage_.block().begin(), argument());
 
                 // transfer ownership to the big storage
                 // note: this is cheap and nothrow, as it only does pointer swaps, not elements
@@ -253,7 +249,7 @@ namespace foonathan
 
                 // again, need a temporary owner for the heap memory block
                 // this is again, cheap and nothrow
-                BigBlockStorage temp(big.arguments());
+                BigBlockStorage temp(big.argument());
                 block_view<T>   temp_constructed;
                 BigBlockStorage::swap(temp, temp_constructed, big.big_storage(), big_constructed);
 
@@ -263,7 +259,7 @@ namespace foonathan
                 big_constructed =
                     big.create_small_buffer(temp, temp_constructed, small_constructed);
                 // also propagate the stored arguments
-                big.set_stored_arguments(small.arguments());
+                big.set_stored_argument(small.argument());
 
                 // if we are at this point, big is a copy of the old small
                 // and small is now empty
@@ -273,13 +269,13 @@ namespace foonathan
                 // again, this is cheap and nothrow
                 auto small_big_storage =
                     construct_object<BigBlockStorage>(small.storage_.block().begin(),
-                                                      temp.arguments());
+                                                      argument_of(temp));
                 BigBlockStorage::swap(temp, temp_constructed, *small_big_storage,
                                       small_constructed);
                 // finalize small by updating its block...
                 small.block_ = small_big_storage->block();
                 // ... and propagating the stored arguments
-                small.set_stored_arguments(temp.arguments());
+                small.set_stored_argument(temp.argument());
 
                 assert(small.is_big() && big.is_small());
             }

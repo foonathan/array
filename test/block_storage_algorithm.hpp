@@ -21,7 +21,7 @@ namespace test
     using namespace foonathan::array;
 
     template <class BlockStorage>
-    void test_clear_and_shrink(const typename BlockStorage::arg_type& arguments)
+    void test_clear_and_shrink(argument_type<BlockStorage> arguments)
     {
         leak_checker checker;
         struct test_type : leak_tracked
@@ -43,7 +43,7 @@ namespace test
     }
 
     template <class BlockStorage>
-    void test_clear_and_reserve(const typename BlockStorage::arg_type& arguments)
+    void test_clear_and_reserve(argument_type<BlockStorage> arguments)
     {
         leak_checker checker;
         struct test_type : leak_tracked
@@ -84,7 +84,7 @@ namespace test
     }
 
     template <class BlockStorage>
-    void test_move_to_front(const typename BlockStorage::arg_type& arguments)
+    void test_move_to_front(argument_type<BlockStorage> arguments)
     {
         leak_checker checker;
         struct test_type : leak_tracked
@@ -138,7 +138,7 @@ namespace test
     }
 
     template <class BlockStorage>
-    void test_assign(const typename BlockStorage::arg_type& arguments)
+    void test_assign(argument_type<BlockStorage> arguments)
     {
         leak_checker checker;
         struct test_type : leak_tracked
@@ -217,7 +217,7 @@ namespace test
     }
 
     template <class BlockStorage>
-    void test_fill(const typename BlockStorage::arg_type& arguments)
+    void test_fill(argument_type<BlockStorage> arguments)
     {
         leak_checker checker;
         struct test_type : leak_tracked
@@ -292,7 +292,7 @@ namespace test
     }
 
     template <class BlockStorage>
-    void test_move_assign(const typename BlockStorage::arg_type& arguments)
+    void test_move_assign(argument_type<BlockStorage> arguments)
     {
         leak_checker checker;
         struct test_type : leak_tracked
@@ -401,7 +401,7 @@ namespace test
     }
 
     template <class BlockStorage>
-    void test_copy_assign(const typename BlockStorage::arg_type& arguments)
+    void test_copy_assign(argument_type<BlockStorage> arguments)
     {
         leak_checker checker;
         struct test_type : leak_tracked
@@ -513,15 +513,15 @@ namespace test
     }
 
     template <class BlockStorage>
-    void test_block_storage_algorithm(const typename BlockStorage::arg_type& args)
+    void test_block_storage_algorithm(argument_type<BlockStorage> arg)
     {
-        test_clear_and_shrink<BlockStorage>(args);
-        test_clear_and_reserve<BlockStorage>(args);
-        test_move_to_front<BlockStorage>(args);
-        test_assign<BlockStorage>(args);
-        test_fill<BlockStorage>(args);
-        test_move_assign<BlockStorage>(args);
-        test_copy_assign<BlockStorage>(args);
+        test_clear_and_shrink<BlockStorage>(arg);
+        test_clear_and_reserve<BlockStorage>(arg);
+        test_move_to_front<BlockStorage>(arg);
+        test_assign<BlockStorage>(arg);
+        test_fill<BlockStorage>(arg);
+        test_move_assign<BlockStorage>(arg);
+        test_copy_assign<BlockStorage>(arg);
     }
 } // namespace test
 

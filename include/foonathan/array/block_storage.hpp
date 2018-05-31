@@ -5,144 +5,99 @@
 #ifndef FOONATHAN_ARRAY_BLOCK_STORAGE_ARG_HPP_INCLUDED
 #define FOONATHAN_ARRAY_BLOCK_STORAGE_ARG_HPP_INCLUDED
 
-#include <algorithm>
-#include <cassert>
-#include <tuple>
+#include <type_traits>
+#include <utility>
 
-#include <foonathan/array/block_view.hpp>
-#include <foonathan/array/raw_storage.hpp>
+#include <foonathan/array/memory_block.hpp>
 
 namespace foonathan
 {
     namespace array
     {
-        //=== block_storage_args ===//
-        /// Tag type to store a collection of arguments to create a `BlockStorage`.
-        /// \notes These can be things like runtime parameters or references to allocators.
-        template <typename... Args>
-        struct block_storage_args_t
+        //=== BlockStorage traits ===//
+        /// The default argument type of `BlockStorage.
+        struct default_argument_type
         {
-            std::tuple<Args...> args;
-
-            /// \effects Creates the default set of arguments,
-            /// it may be ill-formed.
-            block_storage_args_t() = default;
-
-            /// \effects Creates the arguments from a tuple.
-            explicit block_storage_args_t(std::tuple<Args...> args) : args(std::move(args)) {}
-
-            ~block_storage_args_t() noexcept = default;
-
-            /// \effects Copies the arguments, it must not throw.
-            block_storage_args_t(const block_storage_args_t&) noexcept = default;
-            block_storage_args_t& operator=(const block_storage_args_t&) = default;
         };
 
-        /// \returns The block storage arguments created by forwarding the given arguments to the tuple.
-        template <typename... Args>
-        block_storage_args_t<typename std::decay<Args>::type...> block_storage_args(
-            Args&&... args) noexcept
-        {
-            return block_storage_args_t<typename std::decay<Args>::type...>(
-                std::make_tuple(std::forward<Args>(args)...));
-        }
-
-        /// \returns The block storage arguments created by forwarding the given argument to the tuple.
-        template <typename Arg>
-        block_storage_args_t<typename std::decay<Arg>::type> block_storage_arg(Arg&& arg) noexcept
-        {
-            return block_storage_args_t<typename std::decay<Arg>::type>(
-                std::make_tuple(std::forward<Arg>(arg)));
-        }
-
-        //=== block_storage_args_storage ===//
-        namespace detail
-        {
-            template <bool... Bools>
-            struct bool_list
-            {
-            };
-
-            template <bool... Bools>
-            using all_true = std::is_same<bool_list<true, Bools...>, bool_list<Bools..., true>>;
-
-            template <typename... Args>
-            using all_empty = all_true<std::is_empty<Args>::value...>;
-
-            template <bool B, typename... Args>
-            class arg_storage_impl
-            {
-                static_assert(sizeof...(Args) > 0u, "no arguments should mean that all are empty");
-
-            public:
-                using arg_type = block_storage_args_t<Args...>;
-
-                explicit arg_storage_impl(arg_type arguments) noexcept
-                : arguments_(std::move(arguments))
-                {
-                }
-
-                void set_stored_arguments(arg_type arguments) noexcept
-                {
-                    arguments_ = std::move(arguments);
-                }
-
-                const arg_type& stored_arguments() const noexcept
-                {
-                    return arguments_;
-                }
-                arg_type& stored_arguments() noexcept
-                {
-                    return arguments_;
-                }
-
-            private:
-                arg_type arguments_;
-            };
-
-            template <typename... Args>
-            class arg_storage_impl<true, Args...>
-            {
-            public:
-                using arg_type = block_storage_args_t<Args...>;
-
-                explicit arg_storage_impl(const arg_type&) noexcept {}
-
-                void set_stored_arguments(const arg_type&) noexcept {}
-
-                arg_type stored_arguments() const noexcept
-                {
-                    return {};
-                }
-            };
-
-            template <class Args>
-            struct arg_storage;
-
-            template <typename... Args>
-            struct arg_storage<block_storage_args_t<Args...>>
-            {
-                using type = arg_storage_impl<all_empty<Args...>::value, Args...>;
-            };
-        } // namespace detail
-
-        /// Optimized storage for [array::block_storage_args_t]().
-        ///
-        /// It is intended as a base class for EBO, only stores arguments if not all argument types are empty.
-        template <class Args>
-        using block_storage_args_storage = typename detail::arg_storage<Args>::type;
-
-        //=== BlockStorage traits ===//
         /// \exclude
         namespace traits_detail
         {
-            template <class BlockStorage, class Args>
-            static auto max_size(int, const Args& args) -> decltype(BlockStorage::max_size(args))
+            template <class BlockStorage, typename = void>
+            struct has_argument_type : std::false_type
             {
-                return BlockStorage::max_size(args);
+            };
+
+            template <class BlockStorage>
+            struct has_argument_type<
+                BlockStorage, decltype(void(std::declval<typename BlockStorage::argument_type>()))>
+            : std::true_type
+            {
+            };
+
+            template <bool HasArgumentType, class BlockStorage>
+            struct argument_type
+            {
+                using type = default_argument_type;
+            };
+            template <class BlockStorage>
+            struct argument_type<true, BlockStorage>
+            {
+                using type = typename BlockStorage::argument_type;
+            };
+
+            template <class BlockStorage>
+            auto argument_of(int, const BlockStorage& storage) ->
+                typename BlockStorage::argument_type
+            {
+                return storage.argument();
             }
-            template <class BlockStorage, class Args>
-            static size_type max_size(short, const Args&)
+            template <class BlockStorage>
+            default_argument_type argument_of(short, const BlockStorage&)
+            {
+                return {};
+            }
+        } // namespace traits_detail
+
+        /// The argument type of a `BlockStorage`, or `default_argument_type` if it doesn't have one.
+        /// \notes Use this instead of `BlockStorage::argument_type`, as it is optional.
+        template <class BlockStorage>
+        using argument_type = typename traits_detail::argument_type<
+            traits_detail::has_argument_type<BlockStorage>::value, BlockStorage>::type;
+
+        /// \returns The argument the `BlockStorage` was created with.
+        /// \notes Use this instead of calling `argument()` of the block storage directly, as it is optional.
+        template <class BlockStorage>
+        argument_type<BlockStorage> argument_of(const BlockStorage& storage) noexcept
+        {
+            return traits_detail::argument_of(0, storage);
+        }
+
+        /// \exclude
+        namespace traits_detail
+        {
+            struct low_prio
+            {
+            };
+            struct mid_prio : low_prio
+            {
+            };
+            struct high_prio : mid_prio
+            {
+            };
+
+            template <class BlockStorage, class Arg>
+            static auto max_size(high_prio, const Arg& arg) -> decltype(BlockStorage::max_size(arg))
+            {
+                return BlockStorage::max_size(arg);
+            }
+            template <class BlockStorage, class Arg>
+            static auto max_size(mid_prio, const Arg&) -> decltype(BlockStorage::max_size())
+            {
+                return BlockStorage::max_size();
+            }
+            template <class BlockStorage, class Arg>
+            static size_type max_size(low_prio, const Arg&)
             {
                 return memory_block::max_size();
             }
@@ -150,11 +105,98 @@ namespace foonathan
         } // namespace traits_detail
 
         /// \returns The maximum size of a `BlockStorage` created with the given arguments.
+        /// \notes Use this instead of calling `max_size()` of the block storage directly, as it is optional.
         template <class BlockStorage>
-        size_type max_size(const typename BlockStorage::arg_type& args) noexcept
+        size_type max_size(const argument_type<BlockStorage>& arg) noexcept
         {
-            return traits_detail::max_size<BlockStorage>(0, args);
+            return traits_detail::max_size<BlockStorage>(traits_detail::high_prio{}, arg);
         }
+
+        /// \returns The maximum size of the given `BlockStorage`.
+        template <class BlockStorage>
+        size_type max_size(const BlockStorage& storage) noexcept
+        {
+            return max_size<BlockStorage>(argument_of(storage));
+        }
+
+        //=== argument storage ===//
+        namespace detail
+        {
+            template <typename Argument, typename = void>
+            class argument_storage
+            {
+            public:
+                using argument_type = Argument;
+
+                explicit argument_storage(const Argument& arg) noexcept : argument_(arg) {}
+
+                argument_storage(const argument_storage&) noexcept = default;
+                argument_storage& operator=(const argument_storage&) noexcept = default;
+
+                void set_stored_argument(argument_type argument) noexcept
+                {
+                    argument_ = std::move(argument);
+                }
+
+                const argument_type& stored_argument() const noexcept
+                {
+                    return argument_;
+                }
+                argument_type& stored_argument() noexcept
+                {
+                    return argument_;
+                }
+
+                void swap_argument(argument_storage& other) noexcept
+                {
+                    std::swap(argument_, other.argument_);
+                }
+
+            protected:
+                ~argument_storage() = default;
+
+            private:
+                Argument argument_;
+            };
+
+            template <typename Argument>
+            class argument_storage<Argument,
+                                   typename std::enable_if<std::is_empty<Argument>::value>::type>
+            {
+                static_assert(std::is_default_constructible<Argument>::value,
+                              "empty argument type must be default constructible");
+
+            public:
+                using argument_type = Argument;
+
+                explicit argument_storage(const argument_type&) noexcept {}
+
+                argument_storage(const argument_storage&) noexcept = default;
+                argument_storage& operator=(const argument_storage&) noexcept = default;
+
+                void set_stored_argument(argument_type) noexcept {}
+
+                argument_type stored_argument() const noexcept
+                {
+                    return {};
+                }
+
+                void swap_argument(argument_storage&) noexcept {}
+
+            protected:
+                ~argument_storage() = default;
+            };
+        } // namespace detail
+
+        /// Optimized storage for the argument of a block storage.
+        ///
+        /// It is intended to be a base class for EBO.
+        template <class Argument>
+        using argument_storage = detail::argument_storage<Argument>;
+
+        /// Optimized storage for the arguments of a block storage.
+        template <class BlockStorage>
+        using argument_storage_for = argument_storage<argument_type<BlockStorage>>;
     } // namespace array
 } // namespace foonathan
 

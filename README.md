@@ -113,11 +113,15 @@ public:
     /// The arguments required to create the block storage.
     ///
     /// These can be runtime parameters or references to allocators.
-    using arg_type = block_storage_args_t<...>;
+    /// It must be a type that is nothrow (and cheaply) copyable.
+    ///
+    /// It is optional: If it is not provided, the empty type [array::default_argument_type]() is used.
+    struct argument_type;
 
     //=== constructors/destructors ===//
     /// \effects Creates a block storage with the maximal block size possible without dynamic allocation.
-    explicit BlockStorage(arg_type arg) noexcept;
+    /// \notes If there is not `argument_type` typedef, it must take [array::default_argument_type]() directly.
+    explicit BlockStorage(argument_type arg) noexcept;
 
     BlockStorage(const BlockStorage&) = delete;
     BlockStorage& operator=(const BlockStorage&) = delete;
@@ -165,13 +169,18 @@ public:
     memory_block block() const noexcept;
 
     /// \returns The arguments passed to the constructor.
-    arg_type arguments() const noexcept;
+    ///
+    /// This is optional: if `argument_type` isn't provided, it can be left out.
+    /// If `argument_type` is provided, it is not optional.
+    argument_type argument() const noexcept;
 
-    /// \returns The maximum size of a memory block managed by this storage,
+    /// \returns The maximum size of a memory block managed by a storage created with the given arguments,
     /// or `memory_block::max_size()` if there is no limitation by the storage itself.
     ///
     /// This function is optional: if it isn't provided, `memory_block::max_size()` is used instead.
-    static size_type max_size(const arg_type& args) noexcept;
+    /// \param 0
+    /// This parameter can be left out if the information doesn't depend on any arguments.
+    static size_type max_size(argument_type) noexcept;
 };
 ```
 

@@ -42,10 +42,8 @@ TEST_CASE("block_storage_allocator", "[BlockStorage]")
     SECTION("non-empty")
     {
         test::test_block_storage_algorithm<
-            block_storage_allocator<non_empty_allocator, default_growth>>(
-            block_storage_arg(non_empty_allocator(42)));
+            block_storage_allocator<non_empty_allocator, default_growth>>(non_empty_allocator(42));
         test::test_block_storage_algorithm<
-            block_storage_allocator<non_empty_allocator, no_extra_growth>>(
-            block_storage_arg(non_empty_allocator(42)));
+            block_storage_allocator<non_empty_allocator, no_extra_growth>>(non_empty_allocator(42));
     }
 }

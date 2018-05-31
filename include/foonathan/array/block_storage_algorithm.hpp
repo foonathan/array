@@ -27,7 +27,7 @@ namespace foonathan
             destroy_range(constructed.begin(), constructed.end());
             constructed = block_view<T>(storage.block().resize(0u));
 
-            BlockStorage  empty(storage.arguments());
+            BlockStorage  empty(argument_of(storage));
             block_view<T> empty_constructed(empty.block().resize(0u));
             BlockStorage::swap(storage, constructed, empty, empty_constructed);
             // this will never throw as there are no objects that need moving
@@ -259,7 +259,7 @@ namespace foonathan
             auto size_in_bytes = other_constructed.size() * sizeof(T);
 
             // 1. create a copy of the objects in temporary storage
-            BlockStorage temp(other.arguments());
+            BlockStorage temp(argument_of(other));
             temp.reserve(size_in_bytes, block_view<T>(temp.block().resize(0u)));
             uninitialized_copy(other_constructed.begin(), other_constructed.end(), temp.block());
             auto temp_constructed = block_view<T>(temp.block().resize(size_in_bytes));
