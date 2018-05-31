@@ -146,10 +146,10 @@ namespace foonathan
         void clear_and_shrink(BlockStorage& storage, block_view<T> constructed) noexcept
         {
             destroy_range(constructed.begin(), constructed.end());
-            constructed = block_view<T>(empty, storage.block().begin());
+            constructed = block_view<T>(storage.block().resize(0u));
 
             BlockStorage  empty(storage.arguments());
-            block_view<T> empty_constructed(foonathan::array::empty, empty.block().begin());
+            block_view<T> empty_constructed(empty.block().resize(0u));
             BlockStorage::swap(storage, constructed, empty, empty_constructed);
             // this will never throw as there are no objects that need moving
 
@@ -168,9 +168,10 @@ namespace foonathan
             if (new_size <= storage.block().size())
                 return storage.block().begin();
             else
-                // it returns a pointer one past the last constructed object
-                // as no objects are constructed, this will be the beginning of the block
-                return storage.reserve(new_size - storage.block().size(), block_view<T>());
+            {
+                storage.reserve(new_size - storage.block().size(), block_view<T>());
+                return storage.block().begin();
+            }
         }
 
         /// Normalizes a block by moving all constructed objects to the front.
@@ -345,7 +346,7 @@ namespace foonathan
             // dest now owns no memory block
 
             // 2. swap ownership of the memory blocks
-            block_view<T> result(empty, dest.block().begin());
+            block_view<T> result(dest.block().resize(0));
             BlockStorage::swap(dest, result, other, other_constructed);
 
             // other is now empty, other_constructed empty view
@@ -376,18 +377,18 @@ namespace foonathan
                                   const BlockStorage&                        other,
                                   typename detail::const_block_view<T>::type other_constructed)
         {
+            auto size_in_bytes = other_constructed.size() * sizeof(T);
+
             // 1. create a copy of the objects in temporary storage
             BlockStorage temp(other.arguments());
-            auto         new_begin = temp.reserve(other_constructed.size() * sizeof(T),
-                                          block_view<T>(empty, temp.block().begin()));
-            auto new_end = uninitialized_copy(other_constructed.begin(), other_constructed.end(),
-                                              temp.block());
-            auto temp_constructed = block_view<T>(memory_block(new_begin, new_end));
+            temp.reserve(size_in_bytes, block_view<T>(temp.block().resize(0u)));
+            uninitialized_copy(other_constructed.begin(), other_constructed.end(), temp.block());
+            auto temp_constructed = block_view<T>(temp.block().resize(size_in_bytes));
             // if it throws, nothing has changed
 
             // 2. destroy existing objects
             destroy_range(dest_constructed.begin(), dest_constructed.end());
-            dest_constructed = block_view<T>(empty, dest.block().begin());
+            dest_constructed = block_view<T>(dest.block().resize(0u));
 
             // 3. swap temp and destination
             BlockStorage::swap(temp, temp_constructed, dest, dest_constructed);
