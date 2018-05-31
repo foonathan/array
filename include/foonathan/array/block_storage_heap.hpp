@@ -51,21 +51,21 @@ namespace foonathan
 
             //=== reserve/shrink_to_fit ===//
             template <typename T>
-            raw_pointer reserve(size_type min_additional_bytes, const block_view<T>& constructed)
+            void reserve(size_type min_additional_bytes, const block_view<T>& constructed)
             {
                 auto new_size  = GrowthPolicy::growth_size(block_.size(), min_additional_bytes,
                                                           max_size(arguments()));
                 auto new_block = allocate_block(new_size, alignof(T));
-                return change_block(constructed, std::move(new_block));
+                change_block(constructed, std::move(new_block));
             }
 
             template <typename T>
-            raw_pointer shrink_to_fit(const block_view<T>& constructed)
+            void shrink_to_fit(const block_view<T>& constructed)
             {
                 auto byte_size = constructed.size() * sizeof(T);
                 auto new_size  = GrowthPolicy::shrink_size(block_.size(), byte_size);
                 auto new_block = allocate_block(new_size, alignof(T));
-                return change_block(constructed, std::move(new_block));
+                change_block(constructed, std::move(new_block));
             }
 
             //=== accessors ===//
@@ -110,13 +110,12 @@ namespace foonathan
             }
 
             template <typename T>
-            raw_pointer change_block(const block_view<T>& constructed, memory_block&& new_block)
+            void change_block(const block_view<T>& constructed, memory_block&& new_block)
             {
-                raw_pointer end;
                 try
                 {
-                    end = uninitialized_destructive_move(constructed.begin(), constructed.end(),
-                                                         new_block);
+                    uninitialized_destructive_move(constructed.begin(), constructed.end(),
+                                                   new_block);
                 }
                 catch (...)
                 {
@@ -126,8 +125,6 @@ namespace foonathan
 
                 deallocate_block(std::move(block_));
                 block_ = new_block;
-
-                return end;
             }
 
             memory_block block_;

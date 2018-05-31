@@ -123,6 +123,7 @@ public:
     BlockStorage& operator=(const BlockStorage&) = delete;
 
     /// Releases the memory of the block, if it is not empty.
+    /// \notes It does not need to destroy any elements.
     ~BlockStorage() noexcept;
 
     /// Swap.
@@ -143,23 +144,21 @@ public:
     /// The range of already created objects is passed as well,
     /// they shall be moved to the beginning of the new location
     /// as if [array::uninitialized_destructive_move]() was used.
-    /// \returns A pointer directly after the last constructed object in the new location.
     /// \throws Anything thrown by the allocation function, or the copy/move constructor of `T`.
     /// If an exception is thrown, nothing must have changed.
     /// \notes Use [array::uninitialized_destructive_move]() to move the objects over,
     /// it already provides the strong exception safety for you.
     template <typename T>
-    raw_pointer reserve(size_type min_additional_bytes, const block_view<T>& constructed_objects);
+    void reserve(size_type min_additional_bytes, const block_view<T>& constructed_objects);
 
     /// \effects Non-binding request to decrease the currently allocated memory block to the minimum needed.
     /// The range of already created objects is passed, those must be moved to the new location like with `reserve()`.
-    /// \returns A pointer directly after the last constructed object in the new location.
     /// \throws Anything thrown by the allocation function, or the copy/move constructor of `T`.
     /// If an exception is thrown, nothing must have changed.
     /// \notes Use [array::uninitialized_destructive_move]() to move the objects over,
     /// it already provides the strong exception safety for you.
     template <typename T>
-    raw_pointer shrink_to_fit(const block_view<T>& constructed_objects);
+    void shrink_to_fit(const block_view<T>& constructed_objects);
 
     //=== accessors ===//
     /// \returns The memory block it will have in the empty state.

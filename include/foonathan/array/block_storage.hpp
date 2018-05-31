@@ -168,9 +168,10 @@ namespace foonathan
             if (new_size <= storage.block().size())
                 return storage.block().begin();
             else
-                // it returns a pointer one past the last constructed object
-                // as no objects are constructed, this will be the beginning of the block
-                return storage.reserve(new_size - storage.block().size(), block_view<T>());
+            {
+                storage.reserve(new_size - storage.block().size(), block_view<T>());
+                return storage.block().begin();
+            }
         }
 
         /// Normalizes a block by moving all constructed objects to the front.
@@ -378,11 +379,11 @@ namespace foonathan
         {
             // 1. create a copy of the objects in temporary storage
             BlockStorage temp(other.arguments());
-            auto         new_begin = temp.reserve(other_constructed.size() * sizeof(T),
-                                          block_view<T>(empty, temp.block().begin()));
+            temp.reserve(other_constructed.size() * sizeof(T),
+                         block_view<T>(empty, temp.block().begin()));
             auto new_end = uninitialized_copy(other_constructed.begin(), other_constructed.end(),
                                               temp.block());
-            auto temp_constructed = block_view<T>(memory_block(new_begin, new_end));
+            auto temp_constructed = block_view<T>(memory_block(temp.block().begin(), new_end));
             // if it throws, nothing has changed
 
             // 2. destroy existing objects

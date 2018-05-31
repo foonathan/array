@@ -79,25 +79,23 @@ namespace foonathan
 
             //=== reserve/shrink_to_fit ===//
             template <typename T>
-            raw_pointer reserve(size_type min_additional_bytes, block_view<T> constructed)
+            void reserve(size_type min_additional_bytes, block_view<T> constructed)
             {
                 // move to front to allow maximal size
-                auto new_end = to_raw_pointer(move_to_front(*this, constructed).data_end());
+                move_to_front(*this, constructed);
 
                 // check for overflow
                 auto new_size = constructed.size() * sizeof(T) + min_additional_bytes;
-                if (new_size <= BufferBytes)
-                    return new_end;
-                else
+                if (new_size > BufferBytes)
                     throw embedded_storage_overflow();
             }
 
             template <typename T>
-            raw_pointer shrink_to_fit(const block_view<T>& constructed) noexcept(
+            void shrink_to_fit(const block_view<T>& constructed) noexcept(
                 std::is_nothrow_move_constructible<T>::value)
             {
                 // we move it to the front for good measure
-                return to_raw_pointer(move_to_front(*this, constructed).data_end());
+                move_to_front(*this, constructed);
             }
 
             //=== accessors ===//
