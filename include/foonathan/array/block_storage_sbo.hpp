@@ -23,7 +23,7 @@ namespace foonathan
 
         public:
             using embedded_storage = std::true_type;
-            using argument_type    = argument_type<BigBlockStorage>;
+            using argument_type    = foonathan::array::argument_type<BigBlockStorage>;
 
             static constexpr std::size_t small_buffer_size =
                 SmallBufferBytes < sizeof(BigBlockStorage) ? sizeof(BigBlockStorage) :
