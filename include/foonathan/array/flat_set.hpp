@@ -123,16 +123,13 @@ namespace foonathan
 
             /// \effects Creates a set without any elements.
             /// The block storage is initialized with the given arguments.
-            explicit flat_set(typename block_storage::arg_type args) noexcept
-            : array_(std::move(args))
-            {
-            }
+            explicit flat_set(argument_type<BlockStorage> arg) noexcept : array_(arg) {}
 
             /// \effects Creates a set containing the elements of the view.
             /// The block storage is initialized with the given arguments.
-            explicit flat_set(input_view<Key, BlockStorage>&&  input,
-                              typename block_storage::arg_type args = {})
-            : array_(std::move(args))
+            explicit flat_set(input_view<Key, BlockStorage>&& input,
+                              argument_type<BlockStorage>     arg = {})
+            : array_(arg)
             {
                 assign(std::move(input));
             }

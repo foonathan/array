@@ -5,397 +5,218 @@
 #ifndef FOONATHAN_ARRAY_BLOCK_STORAGE_ARG_HPP_INCLUDED
 #define FOONATHAN_ARRAY_BLOCK_STORAGE_ARG_HPP_INCLUDED
 
-#include <algorithm>
-#include <cassert>
-#include <tuple>
+#include <type_traits>
+#include <utility>
 
-#include <foonathan/array/block_view.hpp>
-#include <foonathan/array/raw_storage.hpp>
+#include <foonathan/array/memory_block.hpp>
 
 namespace foonathan
 {
     namespace array
     {
-        //=== block_storage_args ===//
-        /// Tag type to store a collection of arguments to create a `BlockStorage`.
-        /// \notes These can be things like runtime parameters or references to allocators.
-        template <typename... Args>
-        struct block_storage_args_t
+        //=== BlockStorage traits ===//
+        /// \exclude
+        namespace traits_detail
         {
-            std::tuple<Args...> args;
+            template <class BlockStorage, typename = void>
+            struct embedded_storage : std::false_type
+            {
+            };
 
-            /// \effects Creates the default set of arguments,
-            /// it may be ill-formed.
-            block_storage_args_t() = default;
+            template <class BlockStorage>
+            struct embedded_storage<BlockStorage,
+                                    decltype(void(typename BlockStorage::embedded_storage{}))>
+            : BlockStorage::embedded_storage
+            {
+            };
+        } // namespace traits_detail
 
-            /// \effects Creates the arguments from a tuple.
-            explicit block_storage_args_t(std::tuple<Args...> args) : args(std::move(args)) {}
+        /// Whether or not the `BlockStorage` has an embedded buffer.
+        template <class BlockStorage>
+        using embedded_storage = traits_detail::embedded_storage<BlockStorage>;
 
-            ~block_storage_args_t() noexcept = default;
-
-            /// \effects Copies the arguments, it must not throw.
-            block_storage_args_t(const block_storage_args_t&) noexcept = default;
-            block_storage_args_t& operator=(const block_storage_args_t&) = default;
+        /// The default argument type of `BlockStorage.
+        struct default_argument_type
+        {
         };
 
-        /// \returns The block storage arguments created by forwarding the given arguments to the tuple.
-        template <typename... Args>
-        block_storage_args_t<typename std::decay<Args>::type...> block_storage_args(
-            Args&&... args) noexcept
+        /// \exclude
+        namespace traits_detail
         {
-            return block_storage_args_t<typename std::decay<Args>::type...>(
-                std::make_tuple(std::forward<Args>(args)...));
+            template <class BlockStorage, typename = void>
+            struct has_argument_type : std::false_type
+            {
+            };
+
+            template <class BlockStorage>
+            struct has_argument_type<
+                BlockStorage, decltype(void(std::declval<typename BlockStorage::argument_type>()))>
+            : std::true_type
+            {
+            };
+
+            template <bool HasArgumentType, class BlockStorage>
+            struct argument_type
+            {
+                using type = default_argument_type;
+            };
+            template <class BlockStorage>
+            struct argument_type<true, BlockStorage>
+            {
+                using type = typename BlockStorage::argument_type;
+            };
+
+            template <class BlockStorage>
+            auto argument_of(int, const BlockStorage& storage) ->
+                typename BlockStorage::argument_type
+            {
+                return storage.argument();
+            }
+            template <class BlockStorage>
+            default_argument_type argument_of(short, const BlockStorage&)
+            {
+                return {};
+            }
+        } // namespace traits_detail
+
+        /// The argument type of a `BlockStorage`, or `default_argument_type` if it doesn't have one.
+        /// \notes Use this instead of `BlockStorage::argument_type`, as it is optional.
+        template <class BlockStorage>
+        using argument_type = typename traits_detail::argument_type<
+            traits_detail::has_argument_type<BlockStorage>::value, BlockStorage>::type;
+
+        /// \returns The argument the `BlockStorage` was created with.
+        /// \notes Use this instead of calling `argument()` of the block storage directly, as it is optional.
+        template <class BlockStorage>
+        argument_type<BlockStorage> argument_of(const BlockStorage& storage) noexcept
+        {
+            return traits_detail::argument_of(0, storage);
         }
 
-        /// \returns The block storage arguments created by forwarding the given argument to the tuple.
-        template <typename Arg>
-        block_storage_args_t<typename std::decay<Arg>::type> block_storage_arg(Arg&& arg) noexcept
+        /// \exclude
+        namespace traits_detail
         {
-            return block_storage_args_t<typename std::decay<Arg>::type>(
-                std::make_tuple(std::forward<Arg>(arg)));
+            struct low_prio
+            {
+            };
+            struct mid_prio : low_prio
+            {
+            };
+            struct high_prio : mid_prio
+            {
+            };
+
+            template <class BlockStorage, class Arg>
+            static auto max_size(high_prio, const Arg& arg) -> decltype(BlockStorage::max_size(arg))
+            {
+                return BlockStorage::max_size(arg);
+            }
+            template <class BlockStorage, class Arg>
+            static auto max_size(mid_prio, const Arg&) -> decltype(BlockStorage::max_size())
+            {
+                return BlockStorage::max_size();
+            }
+            template <class BlockStorage, class Arg>
+            static size_type max_size(low_prio, const Arg&)
+            {
+                return memory_block::max_size();
+            }
+
+        } // namespace traits_detail
+
+        /// \returns The maximum size of a `BlockStorage` created with the given arguments.
+        /// \notes Use this instead of calling `max_size()` of the block storage directly, as it is optional.
+        template <class BlockStorage>
+        size_type max_size(const argument_type<BlockStorage>& arg) noexcept
+        {
+            return traits_detail::max_size<BlockStorage>(traits_detail::high_prio{}, arg);
         }
 
-        //=== block_storage_args_storage ===//
+        /// \returns The maximum size of the given `BlockStorage`.
+        template <class BlockStorage>
+        size_type max_size(const BlockStorage& storage) noexcept
+        {
+            return max_size<BlockStorage>(argument_of(storage));
+        }
+
+        //=== argument storage ===//
         namespace detail
         {
-            template <bool... Bools>
-            struct bool_list
+            template <typename Argument, typename = void>
+            class argument_storage
             {
-            };
-
-            template <bool... Bools>
-            using all_true = std::is_same<bool_list<true, Bools...>, bool_list<Bools..., true>>;
-
-            template <typename... Args>
-            using all_empty = all_true<std::is_empty<Args>::value...>;
-
-            template <bool B, typename... Args>
-            class arg_storage_impl
-            {
-                static_assert(sizeof...(Args) > 0u, "no arguments should mean that all are empty");
-
             public:
-                using arg_type = block_storage_args_t<Args...>;
+                using argument_type = Argument;
 
-                explicit arg_storage_impl(arg_type arguments) noexcept
-                : arguments_(std::move(arguments))
+                explicit argument_storage(const Argument& arg) noexcept : argument_(arg) {}
+
+                argument_storage(const argument_storage&) noexcept = default;
+                argument_storage& operator=(const argument_storage&) noexcept = default;
+
+                void set_stored_argument(argument_type argument) noexcept
                 {
+                    argument_ = std::move(argument);
                 }
 
-                void set_stored_arguments(arg_type arguments) noexcept
+                const argument_type& stored_argument() const noexcept
                 {
-                    arguments_ = std::move(arguments);
+                    return argument_;
+                }
+                argument_type& stored_argument() noexcept
+                {
+                    return argument_;
                 }
 
-                const arg_type& stored_arguments() const noexcept
+                void swap_argument(argument_storage& other) noexcept
                 {
-                    return arguments_;
+                    std::swap(argument_, other.argument_);
                 }
-                arg_type& stored_arguments() noexcept
-                {
-                    return arguments_;
-                }
+
+            protected:
+                ~argument_storage() = default;
 
             private:
-                arg_type arguments_;
+                Argument argument_;
             };
 
-            template <typename... Args>
-            class arg_storage_impl<true, Args...>
+            template <typename Argument>
+            class argument_storage<Argument,
+                                   typename std::enable_if<std::is_empty<Argument>::value>::type>
             {
+                static_assert(std::is_default_constructible<Argument>::value,
+                              "empty argument type must be default constructible");
+
             public:
-                using arg_type = block_storage_args_t<Args...>;
+                using argument_type = Argument;
 
-                explicit arg_storage_impl(const arg_type&) noexcept {}
+                explicit argument_storage(const argument_type&) noexcept {}
 
-                void set_stored_arguments(const arg_type&) noexcept {}
+                argument_storage(const argument_storage&) noexcept = default;
+                argument_storage& operator=(const argument_storage&) noexcept = default;
 
-                arg_type stored_arguments() const noexcept
+                void set_stored_argument(argument_type) noexcept {}
+
+                argument_type stored_argument() const noexcept
                 {
                     return {};
                 }
-            };
 
-            template <class Args>
-            struct arg_storage;
+                void swap_argument(argument_storage&) noexcept {}
 
-            template <typename... Args>
-            struct arg_storage<block_storage_args_t<Args...>>
-            {
-                using type = arg_storage_impl<all_empty<Args...>::value, Args...>;
+            protected:
+                ~argument_storage() = default;
             };
         } // namespace detail
 
-        /// Optimized storage for [array::block_storage_args_t]().
+        /// Optimized storage for the argument of a block storage.
         ///
-        /// It is intended as a base class for EBO, only stores arguments if not all argument types are empty.
-        template <class Args>
-        using block_storage_args_storage = typename detail::arg_storage<Args>::type;
+        /// It is intended to be a base class for EBO.
+        template <class Argument>
+        using argument_storage = detail::argument_storage<Argument>;
 
-        //=== BlockStorage algorithms ===//
-        /// `std::true_type` if move operations of a `BlockStorage` will never throw, `std::false_type` otherwise.
-        ///
-        /// They'll never throw if the storage does not use embedded storage or the type is nothrow move constructible.
-        template <class BlockStorage, typename T>
-        using block_storage_nothrow_move =
-            std::integral_constant<bool, !BlockStorage::embedded_storage::value
-                                             || std::is_nothrow_move_constructible<T>::value>;
-
-        /// \effects Clears a block storage by destroying all constructed objects and releasing the memory.
-        template <class BlockStorage, typename T>
-        void clear_and_shrink(BlockStorage& storage, block_view<T> constructed) noexcept
-        {
-            destroy_range(constructed.begin(), constructed.end());
-            constructed = block_view<T>(empty, storage.block().begin());
-
-            BlockStorage  empty(storage.arguments());
-            block_view<T> empty_constructed(foonathan::array::empty, empty.block().begin());
-            BlockStorage::swap(storage, constructed, empty, empty_constructed);
-            // this will never throw as there are no objects that need moving
-
-            // storage now owns no memory
-            // empty now owns the memory of storage
-            // destructor of empty will release memory of storage
-        }
-
-        /// \effects Destroys all created objects and increases the memory block so it has at least `new_size` elements.
-        /// \returns A pointer to the new memory.
-        template <class BlockStorage, typename T>
-        raw_pointer clear_and_reserve(BlockStorage& storage, const block_view<T>& constructed,
-                                      size_type new_size)
-        {
-            destroy_range(constructed.begin(), constructed.end());
-            if (new_size <= storage.block().size())
-                return storage.block().begin();
-            else
-                // it returns a pointer one past the last constructed object
-                // as no objects are constructed, this will be the beginning of the block
-                return storage.reserve(new_size - storage.block().size(), block_view<T>());
-        }
-
-        /// Normalizes a block by moving all constructed objects to the front.
-        /// \effects Moves the elements currently constructed at `[constructed.begin(), constructed.end())`
-        /// to `[storage.block().begin(), storage.block.begin() + constructed.size())`.
-        /// \returns A view to the new location of the objects.
-        /// \throws Anything thrown by the move constructor or assignment operator.
-        template <class BlockStorage, typename T>
-        block_view<T> move_to_front(BlockStorage& storage, block_view<T> constructed) noexcept(
-            std::is_nothrow_move_constructible<T>::value)
-        {
-            auto offset = constructed.block().begin() - storage.block().begin();
-            assert(offset >= 0);
-            assert(std::size_t(offset) % sizeof(T) == 0);
-            if (offset == 0)
-                // already at the front
-                return constructed;
-            else if (offset >= std::ptrdiff_t(constructed.size() * sizeof(T)))
-            {
-                // doesn't overlap, just move forward
-                auto new_end = uninitialized_destructive_move(constructed.begin(),
-                                                              constructed.end(), storage.block());
-                return block_view<T>(memory_block(storage.block().begin(), new_end));
-            }
-            else
-            {
-                // move construct the first offset elements at the correct location
-                auto mid = constructed.begin() + offset / std::ptrdiff_t(sizeof(T));
-                uninitialized_move(constructed.begin(), mid, storage.block());
-
-                // now we can assign the next elements to the already moved ones
-                auto new_end = std::move(mid, constructed.end(), constructed.begin());
-
-                // destroy the unnecessary trailing elements
-                destroy_range(new_end, constructed.end());
-
-                return block_view<T>(to_pointer<T>(storage.block().begin()), constructed.size());
-            }
-        }
-
-        namespace detail
-        {
-            template <class FwdIter, typename T>
-            auto copy_or_move_assign(std::true_type, FwdIter begin, FwdIter end,
-                                     const block_view<T>& dest) -> typename block_view<T>::iterator
-            {
-                return std::move(begin, end, dest.begin());
-            }
-            template <class FwdIter, typename T>
-            auto copy_or_move_assign(std::false_type, FwdIter begin, FwdIter end,
-                                     const block_view<T>& dest) -> typename block_view<T>::iterator
-            {
-                return std::copy(begin, end, dest.begin());
-            }
-
-            template <typename T, class FwdIter>
-            raw_pointer copy_or_move_construct(std::true_type, FwdIter begin, FwdIter end,
-                                               const memory_block& dest)
-            {
-                return uninitialized_move_convert<T>(begin, end, dest);
-            }
-            template <typename T, class FwdIter>
-            raw_pointer copy_or_move_construct(std::false_type, FwdIter begin, FwdIter end,
-                                               const memory_block& dest)
-            {
-                return uninitialized_copy_convert<T>(begin, end, dest);
-            }
-
-            template <bool Move, class BlockStorage, typename T, typename FwdIter>
-            block_view<T> assign_impl(std::integral_constant<bool, Move> move, BlockStorage& dest,
-                                      block_view<T> dest_constructed, FwdIter begin, FwdIter end)
-            {
-                dest_constructed = move_to_front(dest, dest_constructed);
-
-                auto new_size = size_type(std::distance(begin, end)) * sizeof(T);
-                auto cur_size = dest_constructed.size() * sizeof(T);
-                if (new_size <= cur_size)
-                {
-                    auto new_end = copy_or_move_assign(move, begin, end, dest_constructed);
-                    destroy_range(new_end, dest_constructed.end());
-                    return block_view<T>(dest_constructed.begin(), new_end);
-                }
-                else if (new_size <= dest.block().size())
-                {
-                    auto assign_end = std::next(begin, std::ptrdiff_t(dest_constructed.size()));
-                    copy_or_move_assign(move, begin, assign_end, dest_constructed);
-                    auto new_end =
-                        copy_or_move_construct<T>(move, assign_end, end,
-                                                  memory_block(to_raw_pointer(
-                                                                   dest_constructed.data_end()),
-                                                               dest.block().end()));
-                    return block_view<T>(memory_block(dest.block().begin(), new_end));
-                }
-                else
-                {
-                    auto new_begin = clear_and_reserve(dest, dest_constructed, new_size);
-                    auto new_end   = copy_or_move_construct<T>(move, begin, end, dest.block());
-                    return block_view<T>(memory_block(new_begin, new_end));
-                }
-            }
-        } // namespace detail
-
-        /// \effects Increases the size of the block owned by `dest` to be as big as needed.
-        /// then copy constructs or assigns the objects over.
-        /// \returns A view to the objects now constructed in `dest`.
-        /// \throws Anything thrown by the allocation or copy constructor/assignment of `T`.
-        /// \requires The constructed objects must start at the beginning of the memory.
-        template <class BlockStorage, typename T, typename FwdIter>
-        block_view<T> assign_copy(BlockStorage& dest, block_view<T> dest_constructed, FwdIter begin,
-                                  FwdIter end)
-        {
-            return detail::assign_impl(std::false_type{}, dest, dest_constructed, begin, end);
-        }
-        template <class BlockStorage, typename T, typename FwdIter>
-        block_view<T> assign_move(BlockStorage& dest, block_view<T> dest_constructed, FwdIter begin,
-                                  FwdIter end)
-        {
-            return detail::assign_impl(std::true_type{}, dest, dest_constructed, begin, end);
-        }
-
-        /// \effects Increases the size of the block to be at least `n`,
-        /// then fills it by copy constructing/assigning `obj`.
-        /// \returns A view to the objects now constructed in `dest`.
-        /// \throws Anything thrown by the allocation or copy constructor/assignment of `T`.
-        /// \requires The constructed objects must start at the beginning of the memory.
-        template <class BlockStorage, typename T>
-        block_view<T> fill(BlockStorage& dest, block_view<T> dest_constructed, size_type n,
-                           const T& obj)
-        {
-            dest_constructed = move_to_front(dest, dest_constructed);
-
-            auto cur_size = dest_constructed.size();
-            if (n <= cur_size)
-            {
-                auto new_end = std::fill_n(dest_constructed.begin(), std::size_t(n), obj);
-                destroy_range(new_end, dest_constructed.end());
-                return block_view<T>(dest_constructed.data(), n);
-            }
-            else if (n * sizeof(T) <= dest.block().size())
-            {
-                std::fill_n(dest_constructed.begin(), cur_size, obj);
-                auto new_end =
-                    uninitialized_fill(memory_block(to_raw_pointer(dest_constructed.data_end()),
-                                                    dest.block().end()),
-                                       n - cur_size, obj);
-                return block_view<T>(memory_block(dest.block().begin(), new_end));
-            }
-            else
-            {
-                auto new_begin = clear_and_reserve(dest, dest_constructed, n * sizeof(T));
-                auto new_end   = uninitialized_fill(dest.block(), n, obj);
-                return block_view<T>(memory_block(new_begin, new_end));
-            }
-        }
-
-        /// Move assignment for block storage.
-        /// \effects Transfers ownership of the memory of `other` and objects constructed in it to `dest`,
-        /// releasing the memory and objects created in it.
-        /// \returns A view on the objects now constructed in `dest`.
-        /// It is either the same as `other_constructed` or a view starting at the beginning of the memory now owned by `dest`.
-        /// \throws Anything thrown by the copy/move constructor of `T` if actual physical objects need to be moved.
-        /// \notes This function will propagate the arguments of the block storage from `other` to `dest`.
-        /// This allows taking ownership of the memory allocated by `dest`.
-        template <class BlockStorage, typename T>
-        block_view<T> move_assign(
-            BlockStorage& dest, block_view<T> dest_constructed, BlockStorage&& other,
-            block_view<T>
-                other_constructed) noexcept(block_storage_nothrow_move<BlockStorage, T>::value)
-        {
-            // 1. clear the destination
-            clear_and_shrink(dest, dest_constructed);
-            // dest now owns no memory block
-
-            // 2. swap ownership of the memory blocks
-            block_view<T> result(empty, dest.block().begin());
-            BlockStorage::swap(dest, result, other, other_constructed);
-
-            // other is now empty, other_constructed empty view
-            // dest now contains the memory of other
-            // result views the objects created in that memory
-            return result;
-        }
-
-        namespace detail
-        {
-            template <typename T>
-            struct const_block_view
-            {
-                using type = block_view<const T>;
-            };
-        } // namespace detail
-
-        /// Copy assignment for block storage.
-        /// \effects Allocates new memory using the arguments from `other` and copies the objects over.
-        /// Then changes `dest` to own that memory, releasing previously owned memory.
-        /// \returns A view on the objects now constructed in `dest`.
-        /// It starts at the beginning of the memory now owned by `dest`.
-        /// \throws Anything thrown by the allocation function or copy constructor of `T`.
-        /// \notes This function is like [array::assign](), but propagates the arguments of the block storage.
-        /// This makes it less efficient as memory of `dest` cannot be reused.
-        template <class BlockStorage, typename T>
-        block_view<T> copy_assign(BlockStorage& dest, block_view<T> dest_constructed,
-                                  const BlockStorage&                        other,
-                                  typename detail::const_block_view<T>::type other_constructed)
-        {
-            // 1. create a copy of the objects in temporary storage
-            BlockStorage temp(other.arguments());
-            auto         new_begin = temp.reserve(other_constructed.size() * sizeof(T),
-                                          block_view<T>(empty, temp.block().begin()));
-            auto new_end = uninitialized_copy(other_constructed.begin(), other_constructed.end(),
-                                              temp.block());
-            auto temp_constructed = block_view<T>(memory_block(new_begin, new_end));
-            // if it throws, nothing has changed
-
-            // 2. destroy existing objects
-            destroy_range(dest_constructed.begin(), dest_constructed.end());
-            dest_constructed = block_view<T>(empty, dest.block().begin());
-
-            // 3. swap temp and destination
-            BlockStorage::swap(temp, temp_constructed, dest, dest_constructed);
-
-            return dest_constructed;
-
-            // destructor of temp frees previous memory of dest
-        }
+        /// Optimized storage for the arguments of a block storage.
+        template <class BlockStorage>
+        using argument_storage_for = argument_storage<argument_type<BlockStorage>>;
     } // namespace array
 } // namespace foonathan
 

@@ -137,9 +137,6 @@ namespace foonathan
             /// \effects Creates an empty view.
             constexpr sorted_view() noexcept = default;
 
-            /// \effects Creates an empty view starting at the specific address.
-            explicit constexpr sorted_view(empty_t, raw_pointer ptr) : array_view<T>(empty, ptr) {}
-
             /// \effects Creates a view on the [array::memory_block]().
             /// \requires The [array::memory_block]() must contain objects of type `T`.
             explicit constexpr sorted_view(const memory_block& block) noexcept

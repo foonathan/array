@@ -108,21 +108,28 @@ public:
     /// Whether or not the block storage may embed some objects inside.
     /// If this is true, the move and swap operations must actually move objects.
     /// If this is false, they will never physically move the objects.
+    ///
+    /// It is optional: if it is not provided, it defaults to [std::false_type]().
     using embedded_storage = std::integral_constant<bool, ...>;
 
     /// The arguments required to create the block storage.
     ///
     /// These can be runtime parameters or references to allocators.
-    using arg_type = block_storage_args_t<...>;
+    /// It must be a type that is nothrow (and cheaply) copyable.
+    ///
+    /// It is optional: If it is not provided, the empty type [array::default_argument_type]() is used.
+    struct argument_type;
 
     //=== constructors/destructors ===//
     /// \effects Creates a block storage with the maximal block size possible without dynamic allocation.
-    explicit BlockStorage(arg_type arg) noexcept;
+    /// \notes If there is not `argument_type` typedef, it must take [array::default_argument_type]() directly.
+    explicit BlockStorage(argument_type arg) noexcept;
 
     BlockStorage(const BlockStorage&) = delete;
     BlockStorage& operator=(const BlockStorage&) = delete;
 
     /// Releases the memory of the block, if it is not empty.
+    /// \notes It does not need to destroy any elements.
     ~BlockStorage() noexcept;
 
     /// Swap.
@@ -143,39 +150,39 @@ public:
     /// The range of already created objects is passed as well,
     /// they shall be moved to the beginning of the new location
     /// as if [array::uninitialized_destructive_move]() was used.
-    /// \returns A pointer directly after the last constructed object in the new location.
     /// \throws Anything thrown by the allocation function, or the copy/move constructor of `T`.
     /// If an exception is thrown, nothing must have changed.
     /// \notes Use [array::uninitialized_destructive_move]() to move the objects over,
     /// it already provides the strong exception safety for you.
     template <typename T>
-    raw_pointer reserve(size_type min_additional_bytes, const block_view<T>& constructed_objects);
+    void reserve(size_type min_additional_bytes, const block_view<T>& constructed_objects);
 
     /// \effects Non-binding request to decrease the currently allocated memory block to the minimum needed.
     /// The range of already created objects is passed, those must be moved to the new location like with `reserve()`.
-    /// \returns A pointer directly after the last constructed object in the new location.
     /// \throws Anything thrown by the allocation function, or the copy/move constructor of `T`.
     /// If an exception is thrown, nothing must have changed.
     /// \notes Use [array::uninitialized_destructive_move]() to move the objects over,
     /// it already provides the strong exception safety for you.
     template <typename T>
-    raw_pointer shrink_to_fit(const block_view<T>& constructed_objects);
+    void shrink_to_fit(const block_view<T>& constructed_objects);
 
     //=== accessors ===//
-    /// \returns The memory block it will have in the empty state.
-    /// \notes If `embedded_storage::value == true`, this is the start address of the embedded storage with the embedded size.
-    /// Otherwise it is an empty memory block.
-    memory_block empty_block() const noexcept;
-
     /// \returns The currently allocated memory block.
     memory_block block() const noexcept;
 
     /// \returns The arguments passed to the constructor.
-    arg_type arguments() const noexcept;
+    ///
+    /// This is optional: if `argument_type` isn't provided, it can be left out.
+    /// If `argument_type` is provided, it is not optional.
+    argument_type argument() const noexcept;
 
-    /// \returns The maximum size of a memory block managed by this storage,
+    /// \returns The maximum size of a memory block managed by a storage created with the given arguments,
     /// or `memory_block::max_size()` if there is no limitation by the storage itself.
-    static size_type max_size(const arg_type& args) noexcept;
+    ///
+    /// This function is optional: if it isn't provided, `memory_block::max_size()` is used instead.
+    /// \param 0
+    /// This parameter can be left out if the information doesn't depend on any arguments.
+    static size_type max_size(argument_type) noexcept;
 };
 ```
 
@@ -195,7 +202,7 @@ struct Heap
 {
     /// The handle for that particular heap.
     /// It must be cheaply and nothrow copyable.
-    struct handle_type {};
+    struct handle_type;
 
     /// Allocates a memory block of the given size and alignment or throws an exception if it is unable to do so.
     /// Doesn't need to handle size `0`.
@@ -206,6 +213,8 @@ struct Heap
     static void deallocate(handle_type& handle, memory_block&& block) noexcept;
 
     /// Returns the maximum size of a memory block, or [array::memory_block::max_size()]() if it isn't limited by the allocator.
+    ///
+    /// This function is optional: if it isn't provided, `memory_block::max_size()` is returned.
     static size_type max_size(const handle_type& handle) noexcept;
 };
 ```

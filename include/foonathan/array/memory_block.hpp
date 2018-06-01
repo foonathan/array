@@ -56,11 +56,13 @@ namespace foonathan
             /// \effects Creates an empty block.
             constexpr memory_block() noexcept : begin_(nullptr), end_(nullptr) {}
 
+            /// \effects Same as `memory_block(memory, memory + size)`.
             constexpr memory_block(raw_pointer memory, size_type size) noexcept
             : begin_(memory), end_(memory + size)
             {
             }
 
+            /// \effects Creates a memory to the block delimited by the given range.
             constexpr memory_block(raw_pointer begin, raw_pointer end) noexcept
             : begin_(begin), end_(end)
             {
@@ -72,19 +74,29 @@ namespace foonathan
                 return begin_ == end_;
             }
 
+            /// \returns The size of the memory block.
             constexpr size_type size() const noexcept
             {
                 return size_type(end_ - begin_);
             }
 
+            /// \returns A pointer to the beginning of the memory.
             constexpr raw_pointer begin() const noexcept
             {
                 return begin_;
             }
 
+            /// \returns A pointer to the end of the memory.
             constexpr raw_pointer end() const noexcept
             {
                 return end_;
+            }
+
+            /// \returns A memory block with the same address but a different size.
+            /// \notes This does not allocate memory or anything!
+            constexpr memory_block resize(size_type new_size) const noexcept
+            {
+                return {begin(), new_size};
             }
 
         private:

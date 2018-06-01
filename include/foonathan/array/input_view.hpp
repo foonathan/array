@@ -5,7 +5,10 @@
 #ifndef FOONATHAN_ARRAY_INPUT_VIEW_HPP_INCLUDED
 #define FOONATHAN_ARRAY_INPUT_VIEW_HPP_INCLUDED
 
+#include <cassert>
+
 #include <foonathan/array/block_storage.hpp>
+#include <foonathan/array/block_view.hpp>
 
 namespace foonathan
 {

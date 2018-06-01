@@ -158,7 +158,7 @@ namespace
                 }
                 SECTION("move constructor")
                 {
-                    using is_embedded = typename Array::block_storage::embedded_storage;
+                    using is_embedded = embedded_storage<typename Array::block_storage>;
 
                     auto  data = iterator_to_pointer(array.begin());
                     Array other(std::move(array));

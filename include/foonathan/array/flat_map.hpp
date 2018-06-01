@@ -273,8 +273,7 @@ namespace foonathan
             /// \effects Creates a map without any elements.
             /// The block storage is initialized with the given arguments.
             /// \notes It will be copied to initialize the two different containers.
-            explicit flat_map(typename block_storage::arg_type args) noexcept
-            : keys_(args), values_(std::move(args))
+            explicit flat_map(argument_type<BlockStorage> arg) noexcept : keys_(arg), values_(arg)
             {
             }
 

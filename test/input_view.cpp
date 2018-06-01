@@ -6,6 +6,7 @@
 
 #include <catch.hpp>
 
+#include <foonathan/array/block_storage_algorithm.hpp>
 #include <foonathan/array/block_storage_new.hpp>
 
 #include "leak_checker.hpp"
