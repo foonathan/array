@@ -7,7 +7,6 @@
 #include <catch.hpp>
 
 #include <foonathan/array/block_storage_embedded.hpp>
-#include <foonathan/array/block_storage_new.hpp>
 #include <foonathan/array/block_storage_sbo.hpp>
 
 #include "equal_checker.hpp"

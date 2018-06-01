@@ -35,6 +35,7 @@ This makes it possible to have a fixed sized array, an array with small buffer o
   `block_storage_new<GrowthPolicy>` is a convenience typedef, uses the `new_heap` and a custom `GrowthPolicy`.
 * `block_storage_sbo`: first uses `block_storage_embedded`, then another `BlockStorage`
 * `block_storage_heap_sbo`: alias for `block_storage_sbo` that uses the given `Heap` for allocation
+* `block_storage_default`: the default `BlockStorage` (`block_storage_new` right now)
 
 #### Containers
 

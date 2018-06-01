@@ -35,9 +35,6 @@ namespace foonathan
         /// A `BlockStorage` that uses `operator new` for memory allocations.
         template <class GrowthPolicy = default_growth>
         using block_storage_new = block_storage_heap<new_heap, GrowthPolicy>;
-
-        /// The default `BlockStorage`.
-        using block_storage_default = block_storage_new<>;
     } // namespace array
 } // namespace foonathan
 

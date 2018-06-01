@@ -9,7 +9,7 @@
 
 #include <foonathan/array/block_storage.hpp>
 #include <foonathan/array/block_storage_algorithm.hpp>
-#include <foonathan/array/block_storage_new.hpp>
+#include <foonathan/array/block_storage_default.hpp>
 #include <foonathan/array/array_view.hpp>
 #include <foonathan/array/input_view.hpp>
 #include <foonathan/array/pointer_iterator.hpp>
