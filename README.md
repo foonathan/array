@@ -23,7 +23,16 @@ This makes it possible to have a fixed sized array, an array with small buffer o
 * `block_storage_heap<Heap, GrowthPolicy>`: dynamic memory allocation.
   The `Heap` controls *how* memory is allocated — policy with `allocate()` and `deallocate()`,
   the `GrowthPolicy` *how much* memory is allocated.
-    * `block_storage_new<GrowthPolicy>`: uses the `new_heap` and a custom `GrowthPolicy`
+
+  `Heap`s:
+    * `new_heap`: uses `::operator new`
+    * `allocator_heap<Allocator>`: uses the given `Allocator` for allocation
+
+  `GrowthPolicy`s:
+    * `no_extra_growth`: only allocates the minimum amount of memory necessary
+    * `factor_growth<Num, Den>`: grows by factor `Num / Den`
+
+  `block_storage_new<GrowthPolicy>` is a convenience typedef, uses the `new_heap` and a custom `GrowthPolicy`.
 * `block_storage_sbo`: first uses `block_storage_embedded`, then another `BlockStorage`
 * `block_storage_heap_sbo`: alias for `block_storage_sbo` that uses the given `Heap` for allocation
 
@@ -41,6 +50,7 @@ again with superior interface compared to `std::map`
 * `array_view<T>`: a `block_view<T>` with indexing
 * `sorted_view<T, Compare>`: an `array_view<T>` that is sorted according to `Compare`
 * `input_view<T, BlockStorage>`: similar to `std::initializer_list` but allows stealing the memory
+* `byte_view<T>()`: converts an `array_view<T>` into an `array_view<std:byte>` to allow byte-wise interpretation of the memory
 
 #### Misc
 
