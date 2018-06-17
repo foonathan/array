@@ -35,7 +35,8 @@ namespace
         }
     };
 
-    using test_map = flat_map<test_type, std::string>;
+    using test_map      = flat_map<test_type, std::string>;
+    using test_multimap = flat_multimap<test_type, std::string>;
 
     template <class Map>
     void verify_map_impl(Map& map, std::initializer_list<int> ids,
@@ -95,7 +96,11 @@ namespace
         for (auto& id : ids)
         {
             if (last_id != -1 && last_id != id)
-                cur_index += map.count(last_id);
+            {
+                auto count = map.count(last_id);
+                cur_index += count;
+                cur_str += count;
+            }
 
             REQUIRE(map.contains(id));
 
@@ -115,7 +120,6 @@ namespace
             REQUIRE(std::next(range.begin(), std::ptrdiff_t(map.count(id))) == range.end());
 
             last_id = id;
-            ++cur_str;
         }
     }
 
@@ -158,23 +162,47 @@ namespace
         verify_map_impl(copy, ids, strs);
     }
 
-    void verify_result(const test_map& map, test_map::insert_result result, int id, std::string str,
-                       std::size_t pos, bool duplicate = false)
+    enum class insert_result
     {
-        if (duplicate)
+        inserted,
+        inserted_duplicate,
+        replaced,
+        duplicate,
+    };
+
+    template <class Map>
+    void verify_result(const Map& map, const typename Map::insert_result& result, int id,
+                       std::string str, std::size_t pos,
+                       insert_result res = insert_result::inserted)
+    {
+        switch (res)
         {
-            REQUIRE(!result.was_inserted());
-            REQUIRE(result.was_duplicate());
-        }
-        else
-        {
+        case insert_result::inserted:
             REQUIRE(result.was_inserted());
             REQUIRE(!result.was_duplicate());
+            REQUIRE(!result.was_replaced());
+            break;
+        case insert_result::inserted_duplicate:
+            REQUIRE(result.was_inserted());
+            REQUIRE(result.was_duplicate());
+            REQUIRE(!result.was_replaced());
+            break;
+        case insert_result::replaced:
+            REQUIRE(!result.was_inserted());
+            REQUIRE(result.was_duplicate());
+            REQUIRE(result.was_replaced());
+            break;
+        case insert_result::duplicate:
+            REQUIRE(!result.was_inserted());
+            REQUIRE(result.was_duplicate());
+            REQUIRE(!result.was_replaced());
+            break;
         }
 
+        REQUIRE(result.iter() != map.end());
+        REQUIRE(std::size_t(result.iter() - map.begin()) == pos);
         REQUIRE(result.iter()->key.id == id);
         REQUIRE(result.iter()->value == str);
-        REQUIRE(std::size_t(result.iter() - map.begin()) == pos);
     }
 } // namespace
 
@@ -188,7 +216,7 @@ TEST_CASE("flat_map", "[container]")
         verify_map(map, {}, {});
 
         // fill with non duplicates
-        auto result = map.try_emplace(0xF0F0, "a");
+        auto result = map.emplace(0xF0F0, "a");
         verify_result(map, result, 0xF0F0, "a", 0);
         verify_map(map, {0xF0F0}, {"a"});
 
@@ -223,25 +251,25 @@ TEST_CASE("flat_map", "[container]")
         SECTION("duplicate insert")
         {
             result = map.insert(0xF1F1, "x");
-            verify_result(map, result, 0xF1F1, "b", 1, true);
+            verify_result(map, result, 0xF1F1, "b", 1, insert_result::duplicate);
             verify_map(map, {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3}, {"a", "b", "c", "d"});
 
             result = map.insert(0xF3F3, "x");
-            verify_result(map, result, 0xF3F3, "d", 3, true);
+            verify_result(map, result, 0xF3F3, "d", 3, insert_result::duplicate);
             verify_map(map, {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3}, {"a", "b", "c", "d"});
         }
-        SECTION("assign insert")
+        SECTION("replace insert")
         {
-            result = map.emplace_or_assign(0xF1F1, 2u, 'b');
-            verify_result(map, result, 0xF1F1, "bb", 1, true);
+            result = map.emplace_or_replace(0xF1F1, 2u, 'b');
+            verify_result(map, result, 0xF1F1, "bb", 1, insert_result::replaced);
             verify_map(map, {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3}, {"a", "bb", "c", "d"});
 
-            result = map.insert_or_assign(0xF4F4, "e");
-            verify_result(map, result, 0xF4F4, "e", 4);
+            result = map.insert_or_replace(0xF4F4, "e");
+            verify_result(map, result, 0xF4F4, "e", 4, insert_result::inserted);
             verify_map(map, {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3, 0xF4F4}, {"a", "bb", "c", "d", "e"});
 
-            result = map.insert_or_assign_pair(std::make_pair(0xF2F2, "cc"));
-            verify_result(map, result, 0xF2F2, "cc", 2, true);
+            result = map.insert_or_replace_pair(std::make_pair(0xF2F2, "cc"));
+            verify_result(map, result, 0xF2F2, "cc", 2, insert_result::replaced);
             verify_map(map, {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3, 0xF4F4}, {"a", "bb", "cc", "d", "e"});
         }
         SECTION("clear")
@@ -334,4 +362,31 @@ TEST_CASE("flat_map", "[container]")
             }
         }
     }
+}
+
+TEST_CASE("flat_multimap", "[container]")
+{
+    // only check duplicate stuff
+
+    leak_checker checker;
+
+    test_multimap map;
+    int           keys[]   = {0xF0F0, 0xF1F1, 0xF2F2, 0xF0F0};
+    std::string   values[] = {"a", "b", "c", "aa"};
+    map.assign_range(std::begin(keys), std::end(keys), std::begin(values), std::end(values));
+    verify_map(map, {0xF0F0, 0xF0F0, 0xF1F1, 0xF2F2}, {"a", "aa", "b", "c"});
+
+    auto result = map.insert(0xF3F3, "d");
+    verify_map(map, {0xF0F0, 0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3}, {"a", "aa", "b", "c", "d"});
+    verify_result(map, result, 0xF3F3, "d", 4);
+
+    result = map.insert(0xF1F1, "bb");
+    verify_map(map, {0xF0F0, 0xF0F0, 0xF1F1, 0xF1F1, 0xF2F2, 0xF3F3},
+               {"a", "aa", "b", "bb", "c", "d"});
+    verify_result(map, result, 0xF1F1, "bb", 3, insert_result::inserted_duplicate);
+
+    result = map.insert_unique(0xF1F1, "bbb");
+    verify_map(map, {0xF0F0, 0xF0F0, 0xF1F1, 0xF1F1, 0xF2F2, 0xF3F3},
+               {"a", "aa", "b", "bb", "c", "d"});
+    verify_result(map, result, 0xF1F1, "b", 2, insert_result::duplicate);
 }

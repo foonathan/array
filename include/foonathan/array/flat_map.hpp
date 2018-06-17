@@ -524,44 +524,7 @@ namespace foonathan
 
             //=== modifiers ===//
             /// The result of an insert operation.
-            class insert_result
-            {
-            public:
-                /// \returns An iterator to the key-value-pair with the given key.
-                iterator iter() const noexcept
-                {
-                    return iter_;
-                }
-
-                /// \returns An iterator the value belonging to the given key.
-                value_iterator value_iter() const noexcept
-                {
-                    return pointer_to_iterator<value_iterator>(
-                        iter_.get_value_pointer(typename iterator::private_key{}));
-                }
-
-                /// \returns Whether or not the key was already present in the map.
-                bool was_duplicate() const noexcept
-                {
-                    return was_duplicate_;
-                }
-
-                /// \returns Whether or not the key was inserted into the map.
-                /// If `was_duplicate() == false`, this is `true`.
-                /// Otherwise it is only true if the set allows duplicates.
-                bool was_inserted() const noexcept
-                {
-                    return !was_duplicate_ || AllowDuplicates;
-                }
-
-            private:
-                insert_result(iterator iter, bool dup) : iter_(iter), was_duplicate_(dup) {}
-
-                iterator iter_;
-                bool     was_duplicate_;
-
-                friend flat_map;
-            };
+            using insert_result = detail::insert_result<iterator>;
 
             /// \effects Does a lookup for the given key.
             /// If the key isn't part of the map or the map allows duplicates, inserts the key-value-pair
@@ -569,19 +532,45 @@ namespace foonathan
             /// Otherwise, does nothing.
             /// \returns The result of the insert operation.
             template <typename TransparentKey, typename... ValueArgs>
-            insert_result try_emplace(TransparentKey&& key, ValueArgs&&... args)
+            insert_result emplace(TransparentKey&& key, ValueArgs&&... args)
             {
-                auto result = keys_.try_emplace(std::forward<TransparentKey>(key));
+                auto result = keys_.emplace(std::forward<TransparentKey>(key));
                 if (result.was_inserted())
                 {
                     // key was inserted, insert value as well
-                    auto iter = value_iter(result.iter());
-                    values_.emplace(iter, std::forward<ValueArgs>(args)...);
-                    return insert_result(key_value_iter(result.iter()), false);
+                    values_.emplace(value_iter(result.iter()), std::forward<ValueArgs>(args)...);
+                    if (result.was_duplicate())
+                        return detail::result_inserted_duplicate(key_value_iter(result.iter()));
+                    else
+                        return detail::result_inserted(key_value_iter(result.iter()));
                 }
                 else
                     // key was not inserted, don't insert value
-                    return insert_result(key_value_iter(result.iter()), true);
+                    return detail::result_nothing(key_value_iter(result.iter()));
+            }
+
+            /// \effects Does a lookup of the given key.
+            /// If the key isn't part of the map, inserts the key-value-pair
+            /// where the key is constructed from the transparent key and the value is constructed from the arguments.
+            /// Otherwise, does nothing.
+            /// \returns The result of the insert operation.
+            /// \requires The map is a multimap.
+            /// \notes This function is the same as `emplace()` on a non-multimap.
+            template <typename TransparentKey, typename... ValueArgs>
+            insert_result emplace_unique(TransparentKey&& key, ValueArgs&&... args)
+            {
+                static_assert(sizeof(TransparentKey) == sizeof(TransparentKey) && AllowDuplicates,
+                              "emplace_unique doesn't make sense on non-multmap");
+                auto result = keys_.emplace_unique(std::forward<TransparentKey>(key));
+                if (result.was_inserted())
+                {
+                    // key was inserted, insert value as well
+                    values_.emplace(value_iter(result.iter()), std::forward<ValueArgs>(args)...);
+                    return detail::result_inserted(key_value_iter(result.iter()));
+                }
+                else
+                    // key was not inserted, don't insert value
+                    return detail::result_nothing(key_value_iter(result.iter()));
             }
 
             /// \effects Does a lookup for the given key.
@@ -589,44 +578,67 @@ namespace foonathan
             /// where the key is constructed from the transparent key and the value is constructed from the arguments.
             /// Otherwise, assigns the value already stored to the value constructed by from the arguments.
             /// \returns The result of the insert operation.
-            /// \requires The map must not allow duplicates.
-            template <typename TransparentKey, typename... Args>
-            insert_result emplace_or_assign(TransparentKey&& key, Args&&... args)
+            /// \requires The map is not a multimap.
+            template <typename TransparentKey, typename... ValueArgs>
+            insert_result emplace_or_replace(TransparentKey&& key, ValueArgs&&... args)
             {
-                static_assert(sizeof(key) == sizeof(key) && !AllowDuplicates,
-                              "emplace_or_assign doesn't make sense on multi maps");
-                auto result =
-                    try_emplace(std::forward<TransparentKey>(key), std::forward<Args>(args)...);
+                static_assert(sizeof(TransparentKey) == sizeof(TransparentKey) && !AllowDuplicates,
+                              "emplace_or_replace doesn't make sense on multimap");
+                auto result = keys_.emplace(std::forward<TransparentKey>(key));
                 if (!result.was_inserted())
                 {
-                    // update the value
-                    // the forwarded arguments are not actually used, so fine to forward them again
-                    assign_value(result.value_iter(), std::forward<Args>(args)...);
+                    // replace value
+                    detail::replace_value(*value_iter(result.iter()),
+                                          std::forward<ValueArgs>(args)...);
+                    return detail::result_replaced(key_value_iter(result.iter()));
                 }
-                return result;
+                else
+                {
+                    // key was inserted, insert value as well
+                    values_.emplace(value_iter(result.iter()), std::forward<ValueArgs>(args)...);
+                    return detail::result_inserted(key_value_iter(result.iter()));
+                }
             }
 
-            /// \effects Same as `try_emplace(FWD(k), FWD(v))`.
+            /// \effects Same as the emplace variant being called with `FWD(k), FWD(v)`.
+            /// \notes This function does not participate in overload resolution if `Key` is not convertible from `K`,
+            /// or `Value` is not convertible from `V`.
+            /// \group insert
+            /// \param 2
+            /// \exclude
             template <
                 typename K, typename V,
                 typename = typename std::enable_if<std::is_convertible<K, Key>::value
                                                    && std::is_convertible<V, Value>::value>::type>
             insert_result insert(K&& k, V&& v)
             {
-                return try_emplace(std::forward<K>(k), std::forward<V>(v));
+                return emplace(std::forward<K>(k), std::forward<V>(v));
             }
-
-            /// \effects Same as `emplace_or_assign(FWD(k), FWD(v))`.
+            /// \group insert
+            /// \param 2
+            /// \exclude
             template <
                 typename K, typename V,
                 typename = typename std::enable_if<std::is_convertible<K, Key>::value
                                                    && std::is_convertible<V, Value>::value>::type>
-            insert_result insert_or_assign(K&& k, V&& v)
+            insert_result insert_unique(K&& k, V&& v)
             {
-                return emplace_or_assign(std::forward<K>(k), std::forward<V>(v));
+                return emplace_unique(std::forward<K>(k), std::forward<V>(v));
+            }
+            /// \group insert
+            /// \param 2
+            /// \exclude
+            template <
+                typename K, typename V,
+                typename = typename std::enable_if<std::is_convertible<K, Key>::value
+                                                   && std::is_convertible<V, Value>::value>::type>
+            insert_result insert_or_replace(K&& k, V&& v)
+            {
+                return emplace_or_replace(std::forward<K>(k), std::forward<V>(v));
             }
 
-            /// \effects Same as `try_emplace(get<0>(FWD(pair)), get<1>(FWD(pair))`.
+            /// \effects Same as the emplace variant being called with `(get<0>(FWD(pair)), get<1>(FWD(pair))`.
+            /// \group insert_pair
             template <class Pair>
             insert_result insert_pair(Pair&& pair)
             {
@@ -634,23 +646,33 @@ namespace foonathan
                 static_assert(std::tuple_size<pair_type>::value == 2u, "not a pair");
 
                 using std::get;
-                return try_emplace(get<0>(std::forward<Pair>(pair)),
-                                   get<1>(std::forward<Pair>(pair)));
+                return emplace(get<0>(std::forward<Pair>(pair)), get<1>(std::forward<Pair>(pair)));
             }
-
-            /// \effects Same as `emplace_or_assign(get<0>(FWD(pair)), get<1>(FWD(pair))`.
+            /// \group insert_pair
             template <class Pair>
-            insert_result insert_or_assign_pair(Pair&& pair)
+            insert_result insert_unique_pair(Pair&& pair)
             {
                 using pair_type = typename std::decay<Pair>::type;
                 static_assert(std::tuple_size<pair_type>::value == 2u, "not a pair");
 
                 using std::get;
-                return emplace_or_assign(get<0>(std::forward<Pair>(pair)),
-                                         get<1>(std::forward<Pair>(pair)));
+                return emplace_unique(get<0>(std::forward<Pair>(pair)),
+                                      get<1>(std::forward<Pair>(pair)));
+            }
+            /// \group insert_pair
+            template <class Pair>
+            insert_result insert_or_replace_pair(Pair&& pair)
+            {
+                using pair_type = typename std::decay<Pair>::type;
+                static_assert(std::tuple_size<pair_type>::value == 2u, "not a pair");
+
+                using std::get;
+                return emplace_or_replace(get<0>(std::forward<Pair>(pair)),
+                                          get<1>(std::forward<Pair>(pair)));
             }
 
-            /// \effects Inserts keys from the range `[key_begin, key_end)` combined with the matching values from `[value_begin, value_end)`.
+            /// \effects Inserts keys from the range `[key_begin, key_end)` combined with the matching values from `[value_begin, value_end)`
+            /// as if calling `emplace()`.
             /// It will stop as soon as one range is exhausted.
             template <typename KeyInputIt, typename ValueInputIt>
             void insert_range(KeyInputIt key_begin, KeyInputIt key_end, ValueInputIt value_begin,
@@ -887,18 +909,6 @@ namespace foonathan
                 assert(key >= iterator_to_pointer(keys_.begin())
                        && key <= iterator_to_pointer(keys_.end()));
                 return key - iterator_to_pointer(keys_.begin());
-            }
-
-            template <typename Arg>
-            auto assign_value(value_iterator iter, Arg&& arg) noexcept
-                -> decltype(*iter = std::forward<Arg>(arg))
-            {
-                return *iter = std::forward<Arg>(arg);
-            }
-            template <typename... Args>
-            void assign_value(value_iterator iter, Args&&... args) const
-            {
-                *iter = Value(std::forward<Args>(args)...);
             }
 
             template <typename InputIt>

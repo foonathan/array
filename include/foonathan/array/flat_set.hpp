@@ -79,6 +79,93 @@ namespace foonathan
             return detail::get_key_value<I, key_value_pair<Key, Value>>::get(key_value);
         }
 
+        namespace detail
+        {
+            template <typename Iterator>
+            class insert_result
+            {
+            public:
+                /// \returns An iterator to the element with the given key.
+                Iterator iter() const noexcept
+                {
+                    return iter_;
+                }
+
+                /// \returns Whether or not the key was already present in the set.
+                bool was_duplicate() const noexcept
+                {
+                    return kind_ != insert;
+                }
+
+                /// \returns Whether or not the key was inserted into the set.
+                bool was_inserted() const noexcept
+                {
+                    return kind_ == insert || kind_ == insert_dup;
+                }
+
+                /// \returns Whether or not the key was being replaced.
+                bool was_replaced() const noexcept
+                {
+                    return kind_ == replace;
+                }
+
+            private:
+                enum kind
+                {
+                    insert,
+                    insert_dup,
+                    replace,
+                    nothing,
+                };
+
+                insert_result(Iterator iter, kind k) : iter_(iter), kind_(k) {}
+
+                Iterator iter_;
+                kind     kind_;
+
+                template <typename Iter>
+                friend insert_result<Iter> result_inserted(Iter iter);
+                template <typename Iter>
+                friend insert_result<Iter> result_inserted_duplicate(Iter iter);
+                template <typename Iter>
+                friend insert_result<Iter> result_replaced(Iter iter);
+                template <typename Iter>
+                friend insert_result<Iter> result_nothing(Iter iter);
+            };
+
+            template <typename Iterator>
+            insert_result<Iterator> result_inserted(Iterator iter)
+            {
+                return {iter, insert_result<Iterator>::insert};
+            }
+            template <typename Iterator>
+            insert_result<Iterator> result_inserted_duplicate(Iterator iter)
+            {
+                return {iter, insert_result<Iterator>::insert_dup};
+            }
+            template <typename Iterator>
+            insert_result<Iterator> result_replaced(Iterator iter)
+            {
+                return {iter, insert_result<Iterator>::replace};
+            }
+            template <typename Iterator>
+            insert_result<Iterator> result_nothing(Iterator iter)
+            {
+                return {iter, insert_result<Iterator>::nothing};
+            }
+
+            template <typename T, typename Arg>
+            auto replace_value(T& obj, Arg&& arg) -> decltype(obj = std::forward<Arg>(arg))
+            {
+                return obj = std::forward<Arg>(arg);
+            }
+            template <typename T, typename... Args>
+            void replace_value(T& obj, Args&&... args)
+            {
+                obj = T(std::forward<Args>(args)...);
+            }
+        } // namespace detail
+
         /// A sorted set of elements.
         ///
         /// It is similar to [std::set]() or [std::multiset]() — depending on `AllowDuplicates`,
@@ -230,45 +317,15 @@ namespace foonathan
 
             //=== modifiers ===//
             /// The result of an insert operation.
-            class insert_result
-            {
-            public:
-                /// \returns An iterator to the element with the given key.
-                iterator iter() const noexcept
-                {
-                    return iter_;
-                }
+            using insert_result = detail::insert_result<iterator>;
 
-                /// \returns Whether or not the key was already present in the set.
-                bool was_duplicate() const noexcept
-                {
-                    return was_duplicate_;
-                }
-
-                /// \returns Whether or not the key was inserted into the set.
-                /// If `was_duplicate() == false`, this is `true`.
-                /// Otherwise it is only true if the set allows duplicates.
-                bool was_inserted() const noexcept
-                {
-                    return !was_duplicate_ || AllowDuplicates;
-                }
-
-            private:
-                insert_result(iterator iter, bool dup) : iter_(iter), was_duplicate_(dup) {}
-
-                iterator iter_;
-                bool     was_duplicate_;
-
-                friend flat_set;
-            };
-
-            /// \effects Does a lookup for the given key.
-            /// If the key isn't part of the set or the set allows duplicates, inserts a key constructed from the transparent key followed by the additional arguments.
+            /// \effects Does a lookup of the given key.
+            /// If the key is not already in the set or the set is a multiset,
+            /// inserts the key constructed by forwarding `key` followed by `args`.
             /// Otherwise, does nothing.
             /// \returns The result of the insert operation.
-            /// \notes The additional arguments are intended for [array::key_value_pair]() as key type.
             template <typename TransparentKey, typename... Args>
-            insert_result try_emplace(TransparentKey&& key, Args&&... args)
+            insert_result emplace(TransparentKey&& key, Args&&... args)
             {
                 auto range = equal_range(key);
                 if (AllowDuplicates || range.empty())
@@ -277,25 +334,103 @@ namespace foonathan
                     auto iter = array_.emplace(convert_iterator(range.end()),
                                                std::forward<TransparentKey>(key),
                                                std::forward<Args>(args)...);
-                    return {convert_iterator(iter), !range.empty()};
+                    if (range.empty())
+                        return detail::result_inserted(convert_iterator(iter));
+                    else
+                        return detail::result_inserted_duplicate(convert_iterator(iter));
                 }
                 else
                 {
                     // we don't allow duplicates and the key is already in the map
                     assert(std::next(range.begin()) == range.end());
-                    return {range.begin(), true};
+                    return detail::result_nothing(range.begin());
                 }
             }
 
-            /// \effects Same as `try_emplace(FWD(k))`.
+            /// \effects Does a lookup of the given key.
+            /// If the key is not already in the set, inserts the key constructed by forwarding `key` followed by `args`.
+            /// Otherwise, does nothing.
+            /// \returns The result of the insert operation.
+            /// \requires The set is a multiset.
+            /// \notes This function is the same as `emplace()` on a non-multiset.
+            template <typename TransparentKey, typename... Args>
+            insert_result emplace_unique(TransparentKey&& key, Args&&... args)
+            {
+                static_assert(sizeof(TransparentKey) == sizeof(TransparentKey) && AllowDuplicates,
+                              "emplace_unique doesn't make sense on non-multiset");
+                auto range = equal_range(key);
+                if (range.empty())
+                {
+                    // key not in the map
+                    auto iter = array_.emplace(convert_iterator(range.end()),
+                                               std::forward<TransparentKey>(key),
+                                               std::forward<Args>(args)...);
+                    return detail::result_inserted(convert_iterator(iter));
+                }
+                else
+                {
+                    // we don't allow duplicates and the key is already in the map
+                    return detail::result_nothing(range.begin());
+                }
+            }
+
+            /// \effects Does a lookup of the given key.
+            /// If the key is not already in the set, inserts the key constructed by forwarding `key` followed by `args`.
+            /// Otherwise, replaces the key with the key constructed by forwarding `key` followed by `args`.
+            /// \returns The result of the insert operation.
+            /// \requires The set is not a multiset and the new key must be inserted in the same position as the old key.
+            /// The latter is guaranteed if the transparent key argument identifies the part of the key that is actually being compared,
+            /// and the other arguments are ignored.
+            template <typename TransparentKey, typename... Args>
+            insert_result emplace_or_replace(TransparentKey&& key, Args&&... args)
+            {
+                static_assert(sizeof(TransparentKey) == sizeof(TransparentKey) && !AllowDuplicates,
+                              "emplace_or_replace doesn't make sense on multiset");
+                auto result =
+                    emplace(std::forward<TransparentKey>(key), std::forward<Args>(args)...);
+                if (result.was_duplicate())
+                {
+                    // can re-use arguments, they are not moved from if no insert took place
+
+                    // this const cast does not lead to UB because no element was const to begin with
+                    // we're also requiring that it doesn't change the sorting oder
+                    detail::replace_value(const_cast<Key&>(*result.iter()),
+                                          std::forward<TransparentKey>(key),
+                                          std::forward<Args>(args)...);
+                    return detail::result_replaced(result.iter());
+                }
+                else
+                    return detail::result_inserted(result.iter());
+            }
+
+            /// \effects Same as the emplace variant being called with `FWD(k)`.
             /// \notes This function does not participate in overload resolution if `Key` is not constructible from `K`.
+            /// \group insert
+            /// \param 1
+            /// \exclude
+            template <typename K,
+                      typename = typename std::enable_if<std::is_convertible<K, Key>::value>::type>
+            insert_result insert_unique(K&& k)
+            {
+                return emplace_unique(std::forward<K>(k));
+            }
+            /// \group insert
             /// \param 1
             /// \exclude
             template <typename K,
                       typename = typename std::enable_if<std::is_convertible<K, Key>::value>::type>
             insert_result insert(K&& k)
             {
-                return try_emplace(std::forward<K>(k));
+                return emplace(std::forward<K>(k));
+            }
+            /// \group insert
+            /// \param 1
+            /// \exclude
+            template <typename K,
+                      typename = typename std::enable_if<std::is_convertible<K, Key>::value>::type>
+            insert_result insert_or_replace(K&& k)
+            {
+                return emplace_or_replace(std::forward<K>(k));
             }
 
             /// \effects Same as `insert_range(view.begin(), view.end())`.
@@ -304,7 +439,7 @@ namespace foonathan
                 insert_range(view.begin(), view.end());
             }
 
-            /// \effects Inserts all elements in the range `[begin, end)`.
+            /// \effects Inserts all elements in the range `[begin, end)` as-if calling `insert()`.
             template <typename InputIt>
             void insert_range(InputIt begin, InputIt end)
             {

@@ -129,28 +129,41 @@ namespace
         verify_set_impl(copy, ids);
     }
 
-    void verify_result(const test_set& set, test_set::insert_result result, int id, std::size_t pos,
-                       bool duplicate = false)
+    enum class insert_result
     {
-        if (duplicate)
+        inserted,
+        inserted_duplicate,
+        replaced,
+        duplicate,
+    };
+
+    template <class Set>
+    void verify_result(const Set& set, typename Set::insert_result result, int id, std::size_t pos,
+                       insert_result res = insert_result::inserted)
+    {
+        switch (res)
         {
-            REQUIRE(!result.was_inserted());
-            REQUIRE(result.was_duplicate());
-        }
-        else
-        {
+        case insert_result::inserted:
             REQUIRE(result.was_inserted());
             REQUIRE(!result.was_duplicate());
+            REQUIRE(!result.was_replaced());
+            break;
+        case insert_result::inserted_duplicate:
+            REQUIRE(result.was_inserted());
+            REQUIRE(result.was_duplicate());
+            REQUIRE(!result.was_replaced());
+            break;
+        case insert_result::replaced:
+            REQUIRE(!result.was_inserted());
+            REQUIRE(result.was_duplicate());
+            REQUIRE(result.was_replaced());
+            break;
+        case insert_result::duplicate:
+            REQUIRE(!result.was_inserted());
+            REQUIRE(result.was_duplicate());
+            REQUIRE(!result.was_replaced());
+            break;
         }
-
-        REQUIRE(result.iter()->id == id);
-        REQUIRE(std::size_t(result.iter() - set.begin()) == pos);
-    }
-    void verify_result(const test_multiset& set, test_multiset::insert_result result, int id,
-                       std::size_t pos, bool duplicate = false)
-    {
-        REQUIRE(result.was_inserted());
-        REQUIRE(result.was_duplicate() == duplicate);
 
         REQUIRE(result.iter()->id == id);
         REQUIRE(std::size_t(result.iter() - set.begin()) == pos);
@@ -167,7 +180,7 @@ TEST_CASE("flat_set", "[container]")
         verify_set(set, {});
 
         // fill with non-duplicates
-        auto result = set.try_emplace(0xF0F0);
+        auto result = set.emplace(0xF0F0);
         verify_result(set, result, 0xF0F0, 0);
         verify_set(set, {0xF0F0});
 
@@ -193,11 +206,23 @@ TEST_CASE("flat_set", "[container]")
         {
             result = set.insert(0xF0F0);
             verify_set(set, {0xF0F0, 0xF2F2, 0xF3F3});
-            verify_result(set, result, 0xF0F0, 0, true);
+            verify_result(set, result, 0xF0F0, 0, insert_result::duplicate);
 
             result = set.insert(0xF3F3);
             verify_set(set, {0xF0F0, 0xF2F2, 0xF3F3});
-            verify_result(set, result, 0xF3F3, 2, true);
+            verify_result(set, result, 0xF3F3, 2, insert_result::duplicate);
+        }
+        SECTION("replace insert")
+        {
+            // doesn't really make *much* sense here
+
+            result = set.insert_or_replace(0xF0F0);
+            verify_set(set, {0xF0F0, 0xF2F2, 0xF3F3});
+            verify_result(set, result, 0xF0F0, 0, insert_result::replaced);
+
+            result = set.insert_or_replace(0xF1F1);
+            verify_set(set, {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3});
+            verify_result(set, result, 0xF1F1, 1, insert_result::inserted);
         }
         SECTION("clear")
         {
@@ -327,7 +352,7 @@ TEST_CASE("flat_set key_value_pair", "[container]")
     test_key_value_set set;
     REQUIRE(set.empty());
 
-    auto result = set.try_emplace(0xF0F0, 0xF0F0);
+    auto result = set.emplace(0xF0F0, 0xF0F0);
     REQUIRE(result.was_inserted());
     REQUIRE(set.size() == 1u);
     REQUIRE(&*result.iter() == &set.min());
@@ -337,7 +362,7 @@ TEST_CASE("flat_set key_value_pair", "[container]")
     set.min().value.id = 0xF1F1;
     REQUIRE(set.min().value.id == 0xF1F1);
 
-    result = set.try_emplace(0xF0F0, 0xF1F1);
+    result = set.emplace(0xF0F0, 0xF1F1);
     REQUIRE(!result.was_inserted());
 }
 
@@ -356,5 +381,9 @@ TEST_CASE("flat_multiset", "[container]")
 
     result = set.insert(0xF1F1);
     verify_set(set, {0xF0F0, 0xF0F0, 0xF1F1, 0xF1F1, 0xF2F2, 0xF3F3});
-    verify_result(set, result, 0xF1F1, 3, true);
+    verify_result(set, result, 0xF1F1, 3, insert_result::inserted_duplicate);
+
+    result = set.insert_unique(0xF1F1);
+    verify_set(set, {0xF0F0, 0xF0F0, 0xF1F1, 0xF1F1, 0xF2F2, 0xF3F3});
+    verify_result(set, result, 0xF1F1, 2, insert_result::duplicate);
 }
