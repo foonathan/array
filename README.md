@@ -33,14 +33,16 @@ This makes it possible to have a fixed sized array, an array with small buffer o
     * `factor_growth<Num, Den>`: grows by factor `Num / Den`
 
   `block_storage_new<GrowthPolicy>` is a convenience typedef, uses the `new_heap` and a custom `GrowthPolicy`.
-* `block_storage_sbo`: first uses `block_storage_embedded`, then another `BlockStorage`
+* `block_storage_sbo`: first uses `block_storage_embedded`, then another `BlockStorage` (small buffer optimization)
 * `block_storage_heap_sbo`: alias for `block_storage_sbo` that uses the given `Heap` for allocation
 * `block_storage_default`: the default `BlockStorage` (`block_storage_new` right now)
 
 #### Containers
 
 * `array<T>`: the `std::vector<T>` of this library
+* `small_array<T>`: convenience alias for `array<T>` with SBO
 * `bag<T>`: an `array<T>` where order of elements isn't important, allows an `O(1)` erase
+* `small_bag<T>`: convenience alias for `bag<T>` with SBO
 * `flat_(multi)set<Key>`: a sorted `array<Key>` with `O(log n)` lookup & co plus a superior interface to `std::set`
 * `flat_(multi)map<Key, Value>`: a `flat_set<Key>` and an `array<Value>` for key-value-storage,
 again with superior interface compared to `std::map`

@@ -11,6 +11,9 @@ namespace foonathan
 {
     namespace array
     {
+        /// The default `Heap`.
+        using default_heap = new_heap;
+
         /// The default `BlockStorage`.
         using block_storage_default = block_storage_new<>;
     } // namespace array

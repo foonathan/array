@@ -38,7 +38,8 @@ set(tests
     key_compare.cpp
     memory_block.cpp
     pointer_iterator.cpp
-    raw_storage.cpp)
+    raw_storage.cpp
+    small.cpp)
 
 add_executable(foonathan_array_test
                 test.cpp

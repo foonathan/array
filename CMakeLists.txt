@@ -34,6 +34,8 @@ set(header_files
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/memory_block.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/pointer_iterator.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/raw_storage.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/small_array.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/small_bag.hpp
     )
 add_library(foonathan_array INTERFACE)
 target_sources(foonathan_array INTERFACE ${detail_header_files} ${header_files})
