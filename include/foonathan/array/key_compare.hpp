@@ -288,6 +288,16 @@ namespace foonathan
             {
                 return first == second;
             }
+
+            /// \returns A view into the range denoted by the pair.
+            /// \requires The iterators are contiguous.
+            /// \param Iter2
+            /// \exclude
+            template <typename Iter2 = Iter>
+            auto view() const noexcept -> block_view<contiguous_iterator_value_type<Iter2>>
+            {
+                return make_block_view(first, second);
+            }
         };
 
         /// \returns A pair of two iterators where the first one is the result of [array::lower_bound]()

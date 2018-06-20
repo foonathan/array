@@ -86,6 +86,7 @@ namespace
             auto range = set.equal_range(id);
             REQUIRE(size_type(range.begin() - set.begin()) == cur_index);
             REQUIRE(std::next(range.begin(), std::ptrdiff_t(set.count(id))) == range.end());
+            REQUIRE(range.view().data() == iterator_to_pointer(range.begin()));
 
             last_id = id;
         }
