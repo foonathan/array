@@ -53,7 +53,7 @@ namespace foonathan
                     swap(lhs.bag, rhs.bag);
                 }
 
-                bag<T, BlockStorage> bag;
+                foonathan::array::bag<T, BlockStorage> bag;
             };
         } // namespace detail
 
@@ -344,7 +344,9 @@ namespace foonathan
             iterator<T> erase(const_iterator<T> iter) noexcept(
                 detail::is_nothrow_swappable<T>::value)
             {
-                auto bag_iter = iterator_cast<typename bag<T, BlockStorage>::const_iterator>(iter);
+                auto bag_iter =
+                    iterator_cast<typename foonathan::array::bag<T, BlockStorage>::const_iterator>(
+                        iter);
                 return iterator<T>(iterator_tag{}, get_single(type_t<T>{}).erase(bag_iter));
             }
             /// \group erase
@@ -362,8 +364,11 @@ namespace foonathan
                 std::is_nothrow_move_assignable<T>::value)
             {
                 auto bag_begin =
-                    iterator_cast<typename bag<T, BlockStorage>::const_iterator>(begin);
-                auto bag_end = iterator_cast<typename bag<T, BlockStorage>::const_iterator>(end);
+                    iterator_cast<typename foonathan::array::bag<T, BlockStorage>::const_iterator>(
+                        begin);
+                auto bag_end =
+                    iterator_cast<typename foonathan::array::bag<T, BlockStorage>::const_iterator>(
+                        end);
                 return iterator<T>(iterator_tag{},
                                    get_single(type_t<T>{}).erase_range(bag_begin, bag_end));
             }
@@ -377,13 +382,13 @@ namespace foonathan
 
         private:
             template <typename T>
-            bag<T, BlockStorage>& get_single(type_t<T>) noexcept
+            foonathan::array::bag<T, BlockStorage>& get_single(type_t<T>) noexcept
             {
                 static_assert(is_stored<T>::value, "type is not stored in variant_bag");
                 return static_cast<detail::variant_bag_single<T, BlockStorage>&>(*this).bag;
             }
             template <typename T>
-            const bag<T, BlockStorage>& get_single(type_t<T>) const noexcept
+            const foonathan::array::bag<T, BlockStorage>& get_single(type_t<T>) const noexcept
             {
                 static_assert(is_stored<T>::value, "type is not stored in variant_bag");
                 return static_cast<const detail::variant_bag_single<T, BlockStorage>&>(*this).bag;
