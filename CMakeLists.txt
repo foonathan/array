@@ -6,6 +6,7 @@ cmake_minimum_required(VERSION 3.1)
 project(array)
 
 set(detail_header_files
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/detail/all_of.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/detail/is_trivial.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/detail/swappable.hpp
     )
@@ -36,6 +37,7 @@ set(header_files
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/raw_storage.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/small_array.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/small_bag.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/variant_bag.hpp
     )
 add_library(foonathan_array INTERFACE)
 target_sources(foonathan_array INTERFACE ${detail_header_files} ${header_files})

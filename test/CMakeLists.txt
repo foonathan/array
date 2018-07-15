@@ -39,7 +39,8 @@ set(tests
     memory_block.cpp
     pointer_iterator.cpp
     raw_storage.cpp
-    small.cpp)
+    small.cpp
+    variant_bag.cpp)
 
 add_executable(foonathan_array_test
                 test.cpp
