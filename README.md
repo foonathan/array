@@ -43,6 +43,7 @@ This makes it possible to have a fixed sized array, an array with small buffer o
 * `small_array<T>`: convenience alias for `array<T>` with SBO
 * `bag<T>`: an `array<T>` where order of elements isn't important, allows an `O(1)` erase
 * `small_bag<T>`: convenience alias for `bag<T>` with SBO
+* `variant_bag<BlockStorage, T1, T2, ...>`: an SOA optimized `bag<std::variant<T1, T2, ...>>`
 * `flat_(multi)set<Key>`: a sorted `array<Key>` with `O(log n)` lookup & co plus a superior interface to `std::set`
 * `flat_(multi)map<Key, Value>`: a `flat_set<Key>` and an `array<Value>` for key-value-storage,
 again with superior interface compared to `std::map`
@@ -380,7 +381,6 @@ This allows moving memory between different containers using the same `BlockStor
 #### Containers
 
 * `unsized_array<T>`: an `array<T>` that doesn't know its size, low-level building block
-* `variant_bag<T1, T2, ...>`: an SOA optimized `bag<std::variant<T1, T2, ...>>`
 * `ring_buffer<T>`: a ring buffer of elements
 * multi dimensional stuff?
 * hash table?
