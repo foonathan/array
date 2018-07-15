@@ -30,6 +30,12 @@ namespace foonathan
             /// except `friend`s of the `Tag`.
             explicit constexpr pointer_iterator(Tag, pointer ptr) : ptr_(ptr) {}
 
+            template <class ContIter>
+            explicit constexpr pointer_iterator(Tag, ContIter iter)
+            : ptr_(iterator_to_pointer(iter))
+            {
+            }
+
             constexpr pointer_iterator() noexcept : ptr_(nullptr) {}
 
             constexpr pointer_iterator(

@@ -28,6 +28,18 @@
 #define FOONATHAN_ARRAY_CONSTEXPR14
 #endif
 
+#ifndef FOONATHAN_ARRAY_HAS_VARIABLE_TEMPLATES
+
+#if defined(__cpp_variable_templates)
+/// \exclude
+#define FOONATHAN_ARRAY_HAS_VARIABLE_TEMPLATES 1
+#else
+/// \exclude
+#define FOONATHAN_ARRAY_HAS_VARIABLE_TEMPLATES 0
+#endif
+
+#endif // FOONATHAN_ARRAY_HAS_VARIABLE_TEMPLATES
+
 #ifndef FOONATHAN_ARRAY_HAS_BYTE
 
 #if defined(__cpp_lib_byte)
