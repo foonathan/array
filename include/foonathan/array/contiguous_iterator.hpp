@@ -75,6 +75,14 @@ namespace foonathan
         {
             return is_contiguous_iterator<ContIter>::to_iterator(pointer);
         }
+
+        /// \returns An iterator of a different type pointing to the same location as the pointer.
+        /// \requires The memory location must be valid for the other iterator type.
+        template <typename Target, typename ContIter>
+        constexpr Target iterator_cast(ContIter iter) noexcept
+        {
+            return pointer_to_iterator<Target>(iterator_to_pointer(iter));
+        }
     } // namespace array
 } // namespace foonathan
 
