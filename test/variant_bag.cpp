@@ -207,3 +207,20 @@ TEST_CASE("variant_bag", "[container]")
         bag.emplace<int>(42);
     }
 }
+
+TEST_CASE("variant_bag insert iterator", "[container]")
+{
+    int   iarray[] = {1, 2, 3, 4, 5};
+    float farray[] = {1.1f, 2.2f, 3.3f};
+
+    variant_bag<block_storage_default, int, float> b;
+    std::copy_if(std::begin(iarray), std::end(iarray), bag_inserter(b),
+                 [](int i) { return i % 2 == 0; });
+    std::copy(std::begin(farray), std::end(farray), bag_inserter(b));
+
+    int iexpected[] = {2, 4};
+    check_equal(b.begin<int>(), b.end<int>(), std::begin(iexpected), std::end(iexpected),
+                [](int a, int b) { return a == b; }, [](int i) { FAIL_CHECK(i); });
+    check_equal(b.begin<float>(), b.end<float>(), std::begin(farray), std::end(farray),
+                [](float a, float b) { return a == b; }, [](float f) { FAIL_CHECK(f); });
+}

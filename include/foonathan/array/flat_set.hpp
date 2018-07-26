@@ -676,6 +676,10 @@ namespace foonathan
         {
         public:
             using iterator_category = std::output_iterator_tag;
+            using value_type        = void;
+            using difference_type   = std::ptrdiff_t;
+            using pointer           = void;
+            using reference         = void;
 
             explicit set_insert_iterator(Set& set) : set_(&set) {}
 

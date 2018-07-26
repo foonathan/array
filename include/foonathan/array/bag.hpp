@@ -275,11 +275,10 @@ namespace foonathan
             {
                 Bag* bag;
 
-                template <typename U, typename = typename std::enable_if<std::is_convertible<
-                                          U, typename Bag::value_type>::value>::type>
-                void operator=(U&& arg)
+                template <typename U>
+                auto operator=(U&& arg) -> decltype((void)bag->insert(std::forward<U>(arg)))
                 {
-                    bag->emplace(std::forward<U>(arg));
+                    bag->insert(std::forward<U>(arg));
                 }
             };
         } // namespace detail
@@ -290,6 +289,10 @@ namespace foonathan
         {
         public:
             using iterator_category = std::output_iterator_tag;
+            using value_type        = void;
+            using difference_type   = std::ptrdiff_t;
+            using pointer           = void;
+            using reference         = void;
 
             explicit bag_insert_iterator(Bag& bag) : bag_(&bag) {}
 
