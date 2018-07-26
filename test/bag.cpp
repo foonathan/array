@@ -194,3 +194,16 @@ TEST_CASE("bag", "[container]")
         verify_bag(bag, {0xF0F0, 0xF1F1, 0xF2F2, 0xF3F3});
     }
 }
+
+TEST_CASE("bag_insert_iterator", "[container]")
+{
+    int array[] = {1, 2, 3, 4, 5};
+
+    bag<int> b;
+    std::copy_if(std::begin(array), std::end(array), bag_inserter(b),
+                 [](int i) { return i % 2 == 0; });
+
+    int expected[] = {2, 4};
+    check_equal(b.begin(), b.end(), std::begin(expected), std::end(expected),
+                [](int a, int b) { return a == b; }, [](int i) { FAIL_CHECK(i); });
+}
