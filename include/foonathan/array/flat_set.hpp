@@ -653,6 +653,65 @@ namespace foonathan
         template <typename Key, typename Compare = key_compare_default,
                   class BlockStorage = block_storage_default>
         using flat_multiset = flat_set<Key, Compare, BlockStorage, true>;
+
+        namespace detail
+        {
+            template <class Set>
+            struct set_assign_proxy
+            {
+                Set* set;
+
+                template <typename U, typename = typename std::enable_if<std::is_convertible<
+                                          U, typename Set::value_type>::value>::type>
+                void operator=(U&& arg)
+                {
+                    set->emplace(std::forward<U>(arg));
+                }
+            };
+        } // namespace detail
+
+        /// An `OutputIterator` that can be used to insert into an [array::flat_set]().
+        template <class Set>
+        class set_insert_iterator
+        {
+        public:
+            using iterator_category = std::output_iterator_tag;
+
+            explicit set_insert_iterator(Set& set) : set_(&set) {}
+
+            detail::set_assign_proxy<Set> operator*() const
+            {
+                return {set_};
+            }
+
+            set_insert_iterator& operator++()
+            {
+                return *this;
+            }
+            set_insert_iterator operator++(int)
+            {
+                return *this;
+            }
+
+        private:
+            Set* set_;
+        };
+
+        /// \returns An [array::set_insert_iterator]() inserting into the given set.
+        /// \group set_inserter
+        template <typename T, class Compare, class BlockStorage>
+        set_insert_iterator<flat_set<T, Compare, BlockStorage>> set_inserter(
+            flat_set<T, Compare, BlockStorage>& set)
+        {
+            return set_insert_iterator<flat_set<T, Compare, BlockStorage>>(set);
+        }
+        /// \group set_inserter
+        template <typename T, class Compare, class BlockStorage>
+        set_insert_iterator<flat_multiset<T, Compare, BlockStorage>> set_inserter(
+            flat_multiset<T, Compare, BlockStorage>& set)
+        {
+            return set_insert_iterator<flat_multiset<T, Compare, BlockStorage>>(set);
+        }
     } // namespace array
 } // namespace foonathan
 
