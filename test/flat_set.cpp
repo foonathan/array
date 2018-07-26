@@ -388,3 +388,29 @@ TEST_CASE("flat_multiset", "[container]")
     verify_set(set, {0xF0F0, 0xF0F0, 0xF1F1, 0xF1F1, 0xF2F2, 0xF3F3});
     verify_result(set, result, 0xF1F1, 2, insert_result::duplicate);
 }
+
+TEST_CASE("set_insert_iterator", "[container]")
+{
+    int array[] = {1, 2, 2, 3, 4, 4, 5};
+
+    SECTION("flat_set")
+    {
+        flat_set<int> set;
+        std::copy_if(std::begin(array), std::end(array), set_inserter(set),
+                     [](int i) { return i % 2 == 0; });
+
+        int expected[] = {2, 4};
+        check_equal(set.begin(), set.end(), std::begin(expected), std::end(expected),
+                    [](int a, int b) { return a == b; }, [](int i) { FAIL_CHECK(i); });
+    }
+    SECTION("flat_multiset")
+    {
+        flat_multiset<int> set;
+        std::copy_if(std::begin(array), std::end(array), set_inserter(set),
+                     [](int i) { return i % 2 == 0; });
+
+        int expected[] = {2, 2, 4, 4};
+        check_equal(set.begin(), set.end(), std::begin(expected), std::end(expected),
+                    [](int a, int b) { return a == b; }, [](int i) { FAIL_CHECK(i); });
+    }
+}

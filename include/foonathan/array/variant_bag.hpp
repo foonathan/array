@@ -418,6 +418,14 @@ namespace foonathan
         /// or `variant_bag<type_list<int, float, char>>`.
         template <class List, class BlockStorage = block_storage_default>
         using variant_bag_tl = typename detail::variant_bag_tl<List, BlockStorage>::type;
+
+        /// \returns An [array::bag_insert_iterator]() inserting into the given variant bag.
+        template <class BlockStorage, typename... Types>
+        bag_insert_iterator<variant_bag<BlockStorage, Types...>> bag_inserter(
+            variant_bag<BlockStorage, Types...>& bag)
+        {
+            return bag_insert_iterator<foonathan::array::variant_bag<BlockStorage, Types...>>(bag);
+        }
     } // namespace array
 } // namespace foonathan
 

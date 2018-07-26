@@ -267,6 +267,59 @@ namespace foonathan
         private:
             array<T, BlockStorage> array_;
         };
+
+        namespace detail
+        {
+            template <class Bag>
+            struct bag_assign_proxy
+            {
+                Bag* bag;
+
+                template <typename U>
+                auto operator=(U&& arg) -> decltype((void)bag->insert(std::forward<U>(arg)))
+                {
+                    bag->insert(std::forward<U>(arg));
+                }
+            };
+        } // namespace detail
+
+        /// An `OutputIterator` that can be used to insert into an [array::bag]().
+        template <class Bag>
+        class bag_insert_iterator
+        {
+        public:
+            using iterator_category = std::output_iterator_tag;
+            using value_type        = void;
+            using difference_type   = std::ptrdiff_t;
+            using pointer           = void;
+            using reference         = void;
+
+            explicit bag_insert_iterator(Bag& bag) : bag_(&bag) {}
+
+            detail::bag_assign_proxy<Bag> operator*() const
+            {
+                return {bag_};
+            }
+
+            bag_insert_iterator& operator++()
+            {
+                return *this;
+            }
+            bag_insert_iterator operator++(int)
+            {
+                return *this;
+            }
+
+        private:
+            Bag* bag_;
+        };
+
+        /// \returns An [array::bag_insert_iterator]() inserting into the given bag.
+        template <typename T, class BlockStorage>
+        bag_insert_iterator<bag<T, BlockStorage>> bag_inserter(bag<T, BlockStorage>& bag)
+        {
+            return bag_insert_iterator<foonathan::array::bag<T, BlockStorage>>(bag);
+        }
     } // namespace array
 } // namespace foonathan
 
