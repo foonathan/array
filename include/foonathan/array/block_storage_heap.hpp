@@ -18,7 +18,7 @@ namespace foonathan
         /// A `BlockStorage` that uses the given `Heap` for (de-)allocation and the given `GrowthPolicy` to control the size.
         ///
         /// It does not have a small buffer optimization.
-        template <class Heap, class GrowthPolicy>
+        template <class Heap, class GrowthPolicy = default_growth>
         class block_storage_heap : argument_storage<typename Heap::handle_type>
         {
         public:
