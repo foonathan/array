@@ -64,13 +64,9 @@ again with superior interface compared to `std::map`
 
 ## FAQ
 
-**Q: How many active projects do you have now? 4?**
+**Q: There are too many containers/policies, which do I use?**
 
-A: 5-6 actually.
-
-**Q: Do you have too much time?**
-
-A: Apparently.
+A: Take a look at the [decision tree](doc/decision-tree.md).
 
 **Q: Does `size()` return a signed or unsigned?**
 
@@ -86,7 +82,7 @@ A: FAQs are not really suited for bike shedding.
 
 **Q: It breaks when I do this!**
 
-A: Don't do that. And file an issue (or a PR, I have 5 other projects...).
+A: Don't do that. And file an issue (or a PR, I have too many other projects...).
 
 **Q: This is awesome!**
 
