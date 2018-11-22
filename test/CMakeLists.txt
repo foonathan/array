@@ -61,8 +61,12 @@ target_compile_options(foonathan_array_test PUBLIC
                        -pedantic-errors -Werror -Wall -Wextra -Wconversion -Wsign-conversion>
                        # disable noexcept type warning on GCC
                        $<$<CXX_COMPILER_ID:GNU>: -Wno-noexcept-type>
+                       # disable mismatched tags warning on clang
+                       $<$<CXX_COMPILER_ID:Clang>: -Wno-mismatched-tags>
                        # MSVC warnings
+                       # disable constant expression in if due to false positive
+                       # disable truncating to bool even though there is a cast warning
                        $<$<CXX_COMPILER_ID:MSVC>:
-                       /WX /W4 /D_SCL_SECURE_NO_WARNINGS>)
+                       /WX /W4 /D_SCL_SECURE_NO_WARNINGS /wd4127 /wd4800>)
 
 add_test(NAME test COMMAND foonathan_array_test)
