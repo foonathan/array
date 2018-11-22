@@ -1,0 +1,64 @@
+name: 'CI build'
+trigger:
+  branches:
+    include:
+      - master
+      - feature/*
+  paths:
+    exclude:
+      - README.md
+
+jobs:
+  - job: windows
+    pool:
+      vmImage: 'vs2017-win2016'
+    steps:
+      - script: |
+          mkdir build && cd build/
+          cmake ../ && cmake --build . && ctest -C Debug --output-on-failure
+        displayName: "Compiling using Visual Studio 2017"
+
+  - job: linux
+    pool:
+      vmImage: 'Ubuntu 16.04'
+    strategy:
+      matrix:
+        GCC5:
+          IMAGE: 'conanio/gcc5'
+        GCC6:
+          IMAGE: 'conanio/gcc6'
+        GCC7:
+          IMAGE: 'conanio/gcc7'
+        GCC8:
+          IMAGE: 'conanio/gcc8'
+        clang4:
+          IMAGE: 'conanio/clang40'
+        clang5:
+          IMAGE: 'conanio/clang50'
+        clang6:
+          IMAGE: 'conanio/clang60'
+        clang7:
+          IMAGE: 'conanio/clang7'
+        DefaultGCC:
+          IMAGE: 'foonathan/micro_cpp_gcc'
+        DefaultClang:
+          IMAGE: 'foonathan/micro_cpp_clang'
+    steps:
+      - script: docker run -u root -v "$PWD:/array" $(IMAGE) bash -c "cmake /array/ && cmake --build . && ctest --output-on-failure"
+        displayName: "Compiling using $(IMAGE)"
+
+  - job: macos
+    pool:
+      vmImage: 'macOS-10.13'
+    strategy:
+      matrix:
+        XCode10:
+          XCODE: '10'
+        XCode9:
+          XCODE: '9.4.1'
+    steps:
+      - script: |
+          sudo xcode-select -s /Applications/Xcode_$(XCODE).app/Contents/Developer
+          mkdir build && cd build/
+          cmake ../ && cmake --build . && ctest --output-on-failure
+        displayName: "Compiling using XCode $(XCODE)"
