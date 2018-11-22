@@ -24,6 +24,6 @@ namespace
             FAIL("not expected elements");
         }
     }
-}; // namespace
+} // namespace
 
 #endif // FOONATHAN_ARRAY_EQUAL_CHECKER_HPP_INCLUDED
