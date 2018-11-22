@@ -196,10 +196,9 @@ namespace foonathan
                 // const_cast is fine, no element was const
                 auto ptr = const_cast<T*>(iterator_to_pointer(iter));
 
-                // swap with the last element, if it is not already last
+                // replace with the last element
                 auto ptr_last = &array_.back();
-                if (ptr != ptr_last)
-                    std::iter_swap(ptr, ptr_last);
+                *ptr          = std::move(*ptr_last);
 
                 // now remove the last element
                 array_.pop_back();
