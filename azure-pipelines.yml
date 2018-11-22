@@ -23,6 +23,8 @@ jobs:
       vmImage: 'Ubuntu 16.04'
     strategy:
       matrix:
+        GCC49:
+          IMAGE: 'conanio/gcc49'
         GCC5:
           IMAGE: 'conanio/gcc5'
         GCC6:
@@ -31,6 +33,8 @@ jobs:
           IMAGE: 'conanio/gcc7'
         GCC8:
           IMAGE: 'conanio/gcc8'
+        clang39:
+          IMAGE: 'conanio/clang39'
         clang4:
           IMAGE: 'conanio/clang40'
         clang5:
