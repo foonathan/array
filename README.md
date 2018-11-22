@@ -1,6 +1,6 @@
 # array
 
-[![Build Status](https://travis-ci.com/foonathan/array.svg)](https://travis-ci.com/foonathan/array)
+[![Build Status](https://dev.azure.com/foonathan/array/_apis/build/status/foonathan.array)](https://dev.azure.com/foonathan/array/_build/latest?definitionId=4)
 [![Build status](https://ci.appveyor.com/api/projects/status/iydnaute3tiqxi9u?svg=true)](https://ci.appveyor.com/project/foonathan/array)
 [![Boost Licensed](https://img.shields.io/badge/license-Boost-blue.svg)](LICENSE)
 
@@ -101,9 +101,13 @@ Header-only (almost everything is a template anyway), no dependencies (currently
 It requires at least C++11, but works better with C++14 or 17.
 Compilers that are being tested on CI:
 
-* Linux: GCC 4.8, 4.9, 5, 6, 7 and clang 3.9, 4, 5
-* OSX: the clang coming with Xcode 8 and 9
-* MSVC: Visual Studio 2015 and 2017
+* Linux:
+    * GCC 4.9 to 8
+    * clang 3.9 to 7
+* MacOS:
+    * XCode 8, 9 and 10
+* Windows:
+    * Visual Studio 2015 and 2017
 
 Newer compilers should work too.
 
