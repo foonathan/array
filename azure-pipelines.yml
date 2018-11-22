@@ -53,9 +53,11 @@ jobs:
     strategy:
       matrix:
         XCode10:
-          XCODE: '10'
+          XCODE: '10.1'
         XCode9:
           XCODE: '9.4.1'
+        XCode8:
+          XCODE: '8.3.3'
     steps:
       - script: |
           sudo xcode-select -s /Applications/Xcode_$(XCODE).app/Contents/Developer
