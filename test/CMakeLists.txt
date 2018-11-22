@@ -2,6 +2,7 @@
 # This file is subject to the license terms in the LICENSE file
 # found in the top-level directory of this distribution.
 
+# get Catch
 if(NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/catch.hpp)
     file(DOWNLOAD
          https://raw.githubusercontent.com/catchorg/Catch2/master/single_include/catch2/catch.hpp
@@ -18,6 +19,7 @@ if(NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/catch.hpp)
     endif()
 endif()
 
+# unit tests
 set(tests
     array.cpp
     array_view.cpp
@@ -47,8 +49,20 @@ add_executable(foonathan_array_test
                 equal_checker.hpp
                 leak_checker.hpp
                 ${tests})
-target_include_directories(foonathan_array_test SYSTEM PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
-target_link_libraries(foonathan_array_test PUBLIC foonathan_array)
-set_target_properties(foonathan_array_test PROPERTIES CXX_STANDARD 11)
+target_include_directories(foonathan_array_test PUBLIC
+                               ${CMAKE_CURRENT_SOURCE_DIR}
+                               ${CMAKE_CURRENT_SOURCE_DIR}/../include
+                           SYSTEM PUBLIC
+                               ${CMAKE_CURRENT_BINARY_DIR})
+target_compile_features(foonathan_array_test PUBLIC cxx_std_11)
+target_compile_options(foonathan_array_test PUBLIC
+                       # clang/GCC warnings
+                       $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:GNU>>:
+                       -pedantic-errors -Werror -Wall -Wextra -Wconversion -Wsign-conversion>
+                       # disable noexcept type warning on GCC
+                       $<$<CXX_COMPILER_ID:GNU>: -Wno-noexcept-type>
+                       # MSVC warnings
+                       $<$<CXX_COMPILER_ID:MSVC>:
+                       /WX /W4 /D_SCL_SECURE_NO_WARNINGS>)
 
 add_test(NAME test COMMAND foonathan_array_test)
