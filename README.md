@@ -1,5 +1,6 @@
 # array
 
+![Project Status](https://img.shields.io/endpoint?url=https%3A%2F%2Fwww.jonathanmueller.dev%2Fproject%2Farray%2Findex.json)
 [![Build Status](https://dev.azure.com/foonathan/array/_apis/build/status/foonathan.array)](https://dev.azure.com/foonathan/array/_build/latest?definitionId=4)
 [![Build status](https://ci.appveyor.com/api/projects/status/iydnaute3tiqxi9u?svg=true)](https://ci.appveyor.com/project/foonathan/array)
 [![Boost Licensed](https://img.shields.io/badge/license-Boost-blue.svg)](LICENSE)
