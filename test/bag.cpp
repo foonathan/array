@@ -13,68 +13,69 @@ using namespace foonathan::array;
 
 namespace
 {
-    struct test_type : leak_tracked
-    {
-        std::uint16_t id;
+struct test_type : leak_tracked
+{
+    std::uint16_t id;
 
-        test_type(int i) : id(static_cast<std::uint16_t>(i)) {}
-    };
+    test_type(int i) : id(static_cast<std::uint16_t>(i)) {}
+};
 
-    using test_bag = bag<test_type>;
+using test_bag = bag<test_type>;
 
-    void verify_bag_impl(const test_bag& bag, std::initializer_list<int> ids)
-    {
-        REQUIRE(bag.empty() == (bag.size() == 0u));
-        REQUIRE(bag.size() == size_type(ids.end() - ids.begin()));
-        REQUIRE(bag.capacity() >= bag.size());
-        REQUIRE(bag.capacity() <= bag.max_size());
+void verify_bag_impl(const test_bag& bag, std::initializer_list<int> ids)
+{
+    REQUIRE(bag.empty() == (bag.size() == 0u));
+    REQUIRE(bag.size() == size_type(ids.end() - ids.begin()));
+    REQUIRE(bag.capacity() >= bag.size());
+    REQUIRE(bag.capacity() <= bag.max_size());
 
-        auto view = block_view<const test_type>(bag);
-        REQUIRE(view.size() == bag.size());
-        REQUIRE(view.data() == iterator_to_pointer(bag.begin()));
-        REQUIRE(view.data_end() == iterator_to_pointer(bag.end()));
-        REQUIRE(view.data() == iterator_to_pointer(bag.cbegin()));
-        REQUIRE(view.data_end() == iterator_to_pointer(bag.cend()));
-        check_equal(view.begin(), view.end(), ids.begin(), ids.end(),
-                    [](const test_type& test, int i) { return test.id == i; },
-                    [&](const test_type& test) { FAIL_CHECK(std::hex << test.id); });
-    }
+    auto view = block_view<const test_type>(bag);
+    REQUIRE(view.size() == bag.size());
+    REQUIRE(view.data() == iterator_to_pointer(bag.begin()));
+    REQUIRE(view.data_end() == iterator_to_pointer(bag.end()));
+    REQUIRE(view.data() == iterator_to_pointer(bag.cbegin()));
+    REQUIRE(view.data_end() == iterator_to_pointer(bag.cend()));
+    check_equal(
+        view.begin(), view.end(), ids.begin(), ids.end(),
+        [](const test_type& test, int i) { return test.id == i; },
+        [&](const test_type& test) { FAIL_CHECK(std::hex << test.id); });
+}
 
-    void verify_bag(const test_bag& bag, std::initializer_list<int> ids)
-    {
-        verify_bag_impl(bag, ids);
+void verify_bag(const test_bag& bag, std::initializer_list<int> ids)
+{
+    verify_bag_impl(bag, ids);
 
-        // copy constructor
-        test_bag copy(bag);
-        verify_bag_impl(copy, ids);
-        REQUIRE(copy.capacity() <= bag.capacity());
+    // copy constructor
+    test_bag copy(bag);
+    verify_bag_impl(copy, ids);
+    REQUIRE(copy.capacity() <= bag.capacity());
 
-        // shrink to fit
-        auto old_cap = copy.capacity();
-        copy.shrink_to_fit();
-        verify_bag_impl(copy, ids);
-        REQUIRE(copy.capacity() <= old_cap);
+    // shrink to fit
+    auto old_cap = copy.capacity();
+    copy.shrink_to_fit();
+    verify_bag_impl(copy, ids);
+    REQUIRE(copy.capacity() <= old_cap);
 
-        // reserve
-        copy.reserve(copy.size() + 4u);
-        REQUIRE(copy.capacity() >= copy.size() + 4u);
-        verify_bag_impl(copy, ids);
+    // reserve
+    copy.reserve(copy.size() + 4u);
+    REQUIRE(copy.capacity() >= copy.size() + 4u);
+    verify_bag_impl(copy, ids);
 
-        // copy assignment
-        copy.emplace(0xFFFF);
-        copy = bag;
-        verify_bag_impl(copy, ids);
+    // copy assignment
+    copy.emplace(0xFFFF);
+    copy = bag;
+    verify_bag_impl(copy, ids);
 
-        // range assignment
-        copy.emplace(0xFFFF);
-        copy.assign_range(bag.begin(), bag.end());
-        verify_bag_impl(copy, ids);
+    // range assignment
+    copy.emplace(0xFFFF);
+    copy.assign_range(bag.begin(), bag.end());
+    verify_bag_impl(copy, ids);
 
-        // block assignment
-        copy.emplace(0xFFFF);
-        copy.assign(bag);
-        verify_bag_impl(copy, ids);
-    }
+    // block assignment
+    copy.emplace(0xFFFF);
+    copy.assign(bag);
+    verify_bag_impl(copy, ids);
+}
 } // namespace
 
 TEST_CASE("bag", "[container]")
@@ -204,6 +205,7 @@ TEST_CASE("bag_insert_iterator", "[container]")
                  [](int i) { return i % 2 == 0; });
 
     int expected[] = {2, 4};
-    check_equal(b.begin(), b.end(), std::begin(expected), std::end(expected),
-                [](int a, int b) { return a == b; }, [](int i) { FAIL_CHECK(i); });
+    check_equal(
+        b.begin(), b.end(), std::begin(expected), std::end(expected),
+        [](int a, int b) { return a == b; }, [](int i) { FAIL_CHECK(i); });
 }
