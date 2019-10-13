@@ -60,7 +60,7 @@ target_compile_options(foonathan_array_test PUBLIC
                        $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:GNU>>:
                        -pedantic-errors -Werror -Wall -Wextra -Wconversion -Wsign-conversion>
                        # disable noexcept type warning on GCC
-                       $<$<CXX_COMPILER_ID:GNU>: -Wno-noexcept-type>
+                       $<$<CXX_COMPILER_ID:GNU>: -Wno-noexcept-type -Wno-init-list-lifetime>
                        # disable mismatched tags warning on clang
                        $<$<CXX_COMPILER_ID:Clang>: -Wno-mismatched-tags>
                        # MSVC warnings
