@@ -12,44 +12,39 @@ using namespace foonathan::array;
 
 namespace
 {
-    template <typename Compare>
-    struct less
+template <typename Compare>
+struct less
+{
+    template <typename T, typename U>
+    bool operator()(const T& t, const U& u)
     {
-        template <typename T, typename U>
-        bool operator()(const T& t, const U& u)
-        {
-            auto result = Compare::compare(t, u);
-            return result == key_ordering::less;
-        }
-    };
-
-    template <typename Compare>
-    void test_impl(const std::vector<int>& container, int value, std::size_t index,
-                   std::size_t count = 1)
-    {
-        INFO(value);
-
-        auto lower =
-            foonathan::array::lower_bound<Compare>(container.begin(), container.end(), value);
-        REQUIRE(std::size_t(lower - container.begin()) == index);
-
-        auto std_lower =
-            std::lower_bound(container.begin(), container.end(), value, less<Compare>{});
-        REQUIRE(std::size_t(std_lower - container.begin()) == index);
-
-        auto upper =
-            foonathan::array::upper_bound<Compare>(container.begin(), container.end(), value);
-        REQUIRE(std::size_t(upper - container.begin()) == index + count);
-
-        auto std_upper =
-            std::upper_bound(container.begin(), container.end(), value, less<Compare>{});
-        REQUIRE(std::size_t(std_upper - container.begin()) == index + count);
-
-        auto range =
-            foonathan::array::equal_range<Compare>(container.begin(), container.end(), value);
-        REQUIRE(range.begin() == lower);
-        REQUIRE(range.end() == upper);
+        auto result = Compare::compare(t, u);
+        return result == key_ordering::less;
     }
+};
+
+template <typename Compare>
+void test_impl(const std::vector<int>& container, int value, std::size_t index,
+               std::size_t count = 1)
+{
+    INFO(value);
+
+    auto lower = foonathan::array::lower_bound<Compare>(container.begin(), container.end(), value);
+    REQUIRE(std::size_t(lower - container.begin()) == index);
+
+    auto std_lower = std::lower_bound(container.begin(), container.end(), value, less<Compare>{});
+    REQUIRE(std::size_t(std_lower - container.begin()) == index);
+
+    auto upper = foonathan::array::upper_bound<Compare>(container.begin(), container.end(), value);
+    REQUIRE(std::size_t(upper - container.begin()) == index + count);
+
+    auto std_upper = std::upper_bound(container.begin(), container.end(), value, less<Compare>{});
+    REQUIRE(std::size_t(std_upper - container.begin()) == index + count);
+
+    auto range = foonathan::array::equal_range<Compare>(container.begin(), container.end(), value);
+    REQUIRE(range.begin() == lower);
+    REQUIRE(range.end() == upper);
+}
 } // namespace
 
 TEST_CASE("lower_bound/upper_bound/equal_range", "[util]")
@@ -124,17 +119,37 @@ TEST_CASE("sorted_view", "[view]")
     {
         view = make_sorted_view(make_block_view(array));
     }
+    SECTION("from const block")
+    {
+        block_view<const int> block = make_block_view(array);
+        view                        = make_sorted_view(block);
+    }
     SECTION("from ptr and size")
     {
         view = make_sorted_view(array, 4);
+    }
+    SECTION("from const ptr and size")
+    {
+        const int* ptr = array;
+        view           = make_sorted_view(ptr, 4);
     }
     SECTION("from range")
     {
         view = make_sorted_view(std::begin(array), std::end(array));
     }
+    SECTION("from const range")
+    {
+        const int(&carray)[4] = array;
+        view                  = make_sorted_view(std::begin(carray), std::end(carray));
+    }
     SECTION("from array")
     {
         view = make_sorted_view(array);
+    }
+    SECTION("from const array")
+    {
+        const int(&carray)[4] = array;
+        view                  = make_sorted_view(carray);
     }
 
     REQUIRE(view.min() == 1);
