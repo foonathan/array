@@ -38,6 +38,7 @@ set(header_files
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/raw_storage.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/small_array.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/small_bag.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/small_flat_set.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/foonathan/array/variant_bag.hpp
     )
 
