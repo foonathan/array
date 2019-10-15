@@ -44,7 +44,7 @@ set(header_files
 # main target
 add_library(foonathan_array INTERFACE)
 add_library(foonathan::foonathan_array ALIAS foonathan_array)
-target_sources(foonathan_array INTERFACE $<BUILD_INTERFACE:${detail_header_files} ${header_files}>)
+target_sources(foonathan_array INTERFACE "$<BUILD_INTERFACE:${detail_header_files};${header_files}>")
 target_compile_features(foonathan_array INTERFACE cxx_std_11)
 target_include_directories(foonathan_array SYSTEM INTERFACE
                                $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>
