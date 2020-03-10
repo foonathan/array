@@ -272,9 +272,9 @@ namespace foonathan
                     auto block_begin_ptr = to_void_pointer(block.begin());
                     assert(block_begin_ptr != nullptr);
                     std::memcpy(block_begin_ptr, source_begin_ptr, size);
-                } else {
-                    assert(no_elements == 0);
                 }
+                else
+                    assert(no_elements == 0);
                 return block.begin() + size;
             }
 
