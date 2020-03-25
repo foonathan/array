@@ -266,7 +266,15 @@ namespace foonathan
                 auto no_elements = std::size_t(end - begin);
                 auto size        = no_elements * sizeof(T);
                 assert(block.size() >= size);
-                std::memcpy(to_void_pointer(block.begin()), iterator_to_pointer(begin), size);
+                auto source_begin_ptr = iterator_to_pointer(begin);
+                if (source_begin_ptr != nullptr)
+                {
+                    auto block_begin_ptr = to_void_pointer(block.begin());
+                    assert(block_begin_ptr != nullptr);
+                    std::memcpy(block_begin_ptr, source_begin_ptr, size);
+                }
+                else
+                    assert(no_elements == 0);
                 return block.begin() + size;
             }
 
